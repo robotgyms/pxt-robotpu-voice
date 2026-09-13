@@ -148,7 +148,7 @@ namespace robotpuVoice {
      * Pronounce a string of SAM phonemes in the background.
      * e.g. "I am a computer" is "AY4 AEM AH KUMPYUW3TER".
      * See the README for the full phoneme table.
-     * @param phonemes phonemes to pronounce, eg: "/HEHLOW WERLD"
+     * @param phonemes phonemes to pronounce, eg: "HEHLOW WERLD"
      */
     //% blockId=robotpuvoice_pronounce block="pronounce phonemes %phonemes"
     //% phonemes.shadow=text
@@ -219,7 +219,7 @@ namespace robotpuVoice {
      * a singer that joins the song late, or a breath between phrases.
      * @param ms how long to keep quiet, in milliseconds, eg: 500
      */
-    //% blockId=robotpuvoice_rest block="rest %ms ms"
+    //% blockId=robotpuvoice_rest block="rest (ms) %ms"
     //% ms.min=0 ms.defl=500
     //% group="Speech"
     //% weight=91
@@ -245,7 +245,7 @@ namespace robotpuVoice {
      */
     //% blockId=robotpuvoice_is_speaking block="is speaking"
     //% group="Speech"
-    //% weight=91
+    //% weight=90
     export function isSpeaking(): boolean {
         return isBusyShim()
     }
@@ -255,7 +255,7 @@ namespace robotpuVoice {
      */
     //% blockId=robotpuvoice_wait block="wait until speech finished"
     //% group="Speech"
-    //% weight=90
+    //% weight=89
     export function waitUntilDone(): void {
         while (isBusyShim()) {
             basic.pause(10)
@@ -268,7 +268,7 @@ namespace robotpuVoice {
      */
     //% blockId=robotpuvoice_on_finished block="on speech finished"
     //% group="Speech"
-    //% weight=89
+    //% weight=88
     export function onSpeechFinished(handler: () => void): void {
         control.onEvent(PUVOICE_EVENT_ID, PUVOICE_EVT_DONE, handler)
     }

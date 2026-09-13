@@ -13,7 +13,6 @@
         "voice.h",
         "voice.cpp",
         "shims.d.ts",
-        "enums.d.ts",
         "sam/debug.h",
         "sam/debug.cpp",
         "sam/sam.h",
