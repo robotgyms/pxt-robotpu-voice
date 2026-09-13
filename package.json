@@ -1,0 +1,8 @@
+{
+    "name": "pxt-robotpu-voice",
+    "version": "0.0.1",
+    "private": true,
+    "dependencies": {
+        "pxt-microbit": "^8.1.32"
+    }
+}

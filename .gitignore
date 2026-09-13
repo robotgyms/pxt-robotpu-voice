@@ -1,0 +1,13 @@
+# Dependencies and build output
+node_modules/
+pxt_modules/
+built/
+package-lock.json
+.pxt/
+
+# IDE and system files
+.idea/
+.DS_Store
+*.o
+*.wav
+hosttest/puvoice

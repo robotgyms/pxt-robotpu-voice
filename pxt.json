@@ -1,0 +1,44 @@
+{
+    "name": "pxt-robotpu-voice",
+    "version": "0.0.1",
+    "description": "SAM text-to-speech voice for Robot PU (micro:bit V2 only). Non-blocking speech queue, voice presets, phonemes, and automatic audio power-down.",
+    "license": "MIT",
+    "dependencies": {
+        "core": "*"
+    },
+    "files": [
+        "README.md",
+        "main.ts",
+        "shim.cpp",
+        "voice.h",
+        "voice.cpp",
+        "shims.d.ts",
+        "enums.d.ts",
+        "sam/debug.h",
+        "sam/debug.cpp",
+        "sam/sam.h",
+        "sam/sam.cpp",
+        "sam/render.h",
+        "sam/render.cpp",
+        "sam/reciter.h",
+        "sam/reciter.cpp",
+        "sam/SamTabs.h",
+        "sam/ReciterTabs.h",
+        "sam/RenderTabs.h"
+    ],
+    "testFiles": [
+        "test.ts"
+    ],
+    "public": true,
+    "targetVersions": {
+        "target": "8.1.32",
+        "targetId": "microbit"
+    },
+    "supportedTargets": [
+        "microbit"
+    ],
+    "preferredEditor": "tsprj",
+    "disablesVariants": [
+        "mbdal"
+    ]
+}
