@@ -1,6 +1,6 @@
 # Robot PU Voice
 
-Text-to-speech for **Robot PU** (and any micro:bit **V2**) based on
+Text-to-speech for **Robot PU** (and any BBC micro:bit **V2**) based on
 [SAM](https://github.com/s-macke/SAM) — *Software Automatic Mouth*, the
 legendary speech synthesizer from the Commodore C64 (1982).
 
