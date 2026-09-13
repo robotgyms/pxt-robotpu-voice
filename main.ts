@@ -22,6 +22,87 @@ enum VoicePreset {
 }
 
 /**
+ * Musical notes for the "sing note" block, mapped to SAM pitch numbers.
+ * SAM pitch is inversely proportional to frequency (smaller = higher),
+ * following pitch = 30000 / Hz, so middle C (C4) is 115 - the same number
+ * MicroPython's speech.sing() uses for "Do" in the solfege example.
+ */
+enum SingNote {
+    //% block="C3"
+    C3 = 229,
+    //% block="C#3"
+    CSharp3 = 216,
+    //% block="D3"
+    D3 = 204,
+    //% block="D#3"
+    DSharp3 = 193,
+    //% block="E3"
+    E3 = 182,
+    //% block="F3"
+    F3 = 172,
+    //% block="F#3"
+    FSharp3 = 162,
+    //% block="G3"
+    G3 = 153,
+    //% block="G#3"
+    GSharp3 = 144,
+    //% block="A3"
+    A3 = 136,
+    //% block="A#3"
+    ASharp3 = 129,
+    //% block="B3"
+    B3 = 122,
+    //% block="C4 (middle C)"
+    C4 = 115,
+    //% block="C#4"
+    CSharp4 = 108,
+    //% block="D4"
+    D4 = 102,
+    //% block="D#4"
+    DSharp4 = 96,
+    //% block="E4"
+    E4 = 91,
+    //% block="F4"
+    F4 = 86,
+    //% block="F#4"
+    FSharp4 = 81,
+    //% block="G4"
+    G4 = 77,
+    //% block="G#4"
+    GSharp4 = 72,
+    //% block="A4"
+    A4 = 68,
+    //% block="A#4"
+    ASharp4 = 64,
+    //% block="B4"
+    B4 = 61,
+    //% block="C5"
+    C5 = 57,
+    //% block="C#5"
+    CSharp5 = 54,
+    //% block="D5"
+    D5 = 51,
+    //% block="D#5"
+    DSharp5 = 48,
+    //% block="E5"
+    E5 = 46,
+    //% block="F5"
+    F5 = 43,
+    //% block="F#5"
+    FSharp5 = 41,
+    //% block="G5"
+    G5 = 38,
+    //% block="G#5"
+    GSharp5 = 36,
+    //% block="A5"
+    A5 = 34,
+    //% block="A#5"
+    ASharp5 = 32,
+    //% block="B5"
+    B5 = 30
+}
+
+/**
  * Robot PU Voice - a text to speech extension for the micro:bit V2 based on
  * SAM (Software Automatic Mouth, 1982). Speech is rendered on a background
  * fiber so the robot can keep moving while it talks. The audio pipeline is
@@ -88,6 +169,64 @@ namespace robotpuVoice {
     //% weight=94
     export function sing(text: string): void {
         singShim(text)
+    }
+
+    /**
+     * Sing a string of SAM phonemes with pitch markers, like MicroPython's
+     * speech.sing(). Each "#nnn" sets the pitch for the phonemes after it
+     * (smaller numbers are higher); repeat vowel phonemes to hold a note.
+     * e.g. "#115DOWWWWWW #103REYYYYYY #94MIYYYYYY" sings Do-Re-Mi.
+     * @param phonemes phonemes with #nnn pitch markers, eg: "#115DOWWWWWW"
+     */
+    //% blockId=robotpuvoice_sing_phonemes block="sing phonemes %phonemes"
+    //% phonemes.shadow=text
+    //% group="Speech"
+    //% weight=93
+    //% advanced=true
+    export function singPhonemes(phonemes: string): void {
+        singPhonemesShim(phonemes)
+    }
+
+    /**
+     * Sing one musical note. Give the syllable to sing (SAM phonemes, e.g.
+     * "DOW" for "doe") and how much to stretch the vowel to hold the note.
+     * @param note the note to sing, eg: SingNote.C4
+     * @param syllable SAM phonemes for the syllable, eg: "DOW"
+     * @param hold extra vowel repetitions to lengthen the note, eg: 4
+     */
+    //% blockId=robotpuvoice_sing_note block="sing note %note syllable %syllable hold %hold"
+    //% syllable.shadow=text syllable.defl="DOW"
+    //% hold.min=0 hold.max=24 hold.defl=4
+    //% group="Speech"
+    //% weight=92
+    export function singNote(note: SingNote, syllable: string, hold: number): void {
+        let s = syllable.trim().toUpperCase()
+        if (s.length == 0 || hold < 0)
+            return
+        // stretchable tail: single continuant phoneme (W Y R L M N) or the
+        // last two characters of a vowel digraph (AO, IY, OW, ...)
+        let tail = s.charAt(s.length - 1)
+        if ("WYRLMN".indexOf(tail) < 0 && s.length > 1)
+            tail = s.substr(s.length - 2)
+        for (let i = 0; i < hold; i++)
+            s += tail
+        singPhonemesShim("#" + note + s + " ")
+    }
+
+    /**
+     * Stay quiet for a while. Rests are queued just like notes, so they
+     * play at exactly the right moment between sung phrases - handy for
+     * a singer that joins the song late, or a breath between phrases.
+     * @param ms how long to keep quiet, in milliseconds, eg: 500
+     */
+    //% blockId=robotpuvoice_rest block="rest %ms ms"
+    //% ms.min=0 ms.defl=500
+    //% group="Speech"
+    //% weight=91
+    export function rest(ms: number): void {
+        if (ms <= 0)
+            return
+        restShim(ms)
     }
 
     /**
@@ -271,6 +410,16 @@ namespace robotpuVoice {
     //% shim=puvoice::singShim
     function singShim(text: string): void {
         console.log("sing: " + text)
+    }
+
+    //% shim=puvoice::singPhonemesShim
+    function singPhonemesShim(phonemes: string): void {
+        console.log("sing phonemes: " + phonemes)
+    }
+
+    //% shim=puvoice::restShim
+    function restShim(ms: number): void {
+        console.log("rest: " + ms + " ms")
     }
 
     //% shim=puvoice::setVoiceShim

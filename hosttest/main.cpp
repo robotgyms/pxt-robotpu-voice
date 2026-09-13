@@ -89,7 +89,10 @@ static void streamFlush(int length) {
 
 namespace puvoice {
     int debug = 0;
+    // when non-null, samples are also captured raw for analysis
+    static uint8_t *capture = NULL;
     void SamOutputByte(unsigned int pos, unsigned char value) {
+        if (capture && pos < 2000000) capture[pos] = value;
         while (pos >= windowBase + WINDOW_SIZE)
             streamFlush(WINDOW_SIZE);
         int offset = (int)pos - (int)windowBase;
@@ -103,10 +106,28 @@ namespace puvoice {
 
 using namespace puvoice;
 
+// pitch-period estimate via autocorrelation: find the lag in [20,300]
+// samples that best repeats the signal over a steady segment
+static double estimatePeriod(uint8_t *buf, int from, int to) {
+    int len = to - from;
+    double best = -1;
+    int bestLag = -1;
+    for (int lag = 20; lag < 300; lag++) {
+        double score = 0;
+        for (int i = 0; i < len - lag; i++) {
+            int a = buf[from + i] - SILENCE;
+            int b = buf[from + i + lag] - SILENCE;
+            score += (double)a * b;
+        }
+        if (score > best) { best = score; bestLag = lag; }
+    }
+    return bestLag;
+}
+
 static int say(const char *text, int mode) {
     char input[256];
     memset(input, ' ', sizeof(input));
-    if (mode == 1) {
+    if (mode == 1 || mode == 3) {
         int length = strlen(text);
         if (length > 255) length = 255;
         memcpy(input, text, length);
@@ -127,7 +148,7 @@ static int say(const char *text, int mode) {
         printf("\n");
     }
 
-    SetSingmode(mode == 2 ? 1 : 0);
+    SetSingmode(mode == 2 || mode == 3 ? 1 : 0);
     SetSpeed(72); SetPitch(64); SetMouth(128); SetThroat(128);
     streamReset();
     SetInput(input);
@@ -149,8 +170,44 @@ int main() {
     say("AY4 AEM AH KUMPYUW3TER", 1);
     printf("--- sing ---\n");
     say("daisy daisy", 2);
+    printf("--- sing phonemes: solfege ---\n");
+    say("#115DOWWWWWW #103REYYYYYY #94MIYYYYYY #88FAOAOAOAOR #78SOHWWWWW #70LAOAOAOAOR #62TIYYYYYY #58DOWWWWWW", 3);
 
     wavClose();
     printf("total samples: %ld (%.2f s)\n", totalSamples, totalSamples / 22050.0);
+
+    // verify '#' markers change pitch: same syllable, #115 vs #58
+    printf("--- pitch marker check ---\n");
+    static uint8_t cap[2000000];
+    double period[2];
+    const char *notes[2] = { "#115DOWWWWWW", "#58DOWWWWWW" };
+    for (int n = 0; n < 2; n++) {
+        memset(cap, SILENCE, sizeof(cap));
+        capture = cap;
+        char input[256];
+        memset(input, ' ', sizeof(input));
+        int length = strlen(notes[n]);
+        memcpy(input, notes[n], length);
+        input[length] = (char)0x9b;
+        SetSingmode(1);
+        SetSpeed(72); SetPitch(64); SetMouth(128); SetThroat(128);
+        SetInput(input);
+        if (SAMMain() == 0) { printf("SAMMain failed for %s\n", notes[n]); return 1; }
+        capture = NULL;
+        // measure over the steady middle of the vowel
+        period[n] = estimatePeriod(cap, 3000, 20000);
+        printf("%s -> period %.2f samples\n", notes[n], period[n]);
+    }
+    if (period[0] <= 0 || period[1] <= 0) {
+        printf("FAIL: could not measure pitch periods\n");
+        return 1;
+    }
+    double ratio = period[0] / period[1];
+    printf("period ratio %.2f (expected ~%.2f from pitch 115/58)\n", ratio, 115.0 / 58.0);
+    if (ratio < 1.5 || ratio > 2.5) {
+        printf("FAIL: '#' markers did not produce the expected pitch change\n");
+        return 1;
+    }
+    printf("PASS: pitch markers working\n");
     return 0;
 }

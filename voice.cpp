@@ -24,6 +24,7 @@
 #include "pxt.h"
 #include "voice.h"
 #include <string.h>
+#include <stdlib.h>
 
 namespace puvoice {
 
@@ -192,11 +193,25 @@ void PuVoice::outputByte(unsigned int pos, unsigned char value) {
 bool PuVoice::speakNow(const char *text, int mode) {
     ensureStarted();
 
+    if (mode == PUVOICE_MODE_SILENCE) {
+        // A rest: stream pure silence for the requested duration. play()
+        // blocks until the mixer has consumed each window, so the rest is
+        // paced in real time and stays in sequence with queued speech.
+        long remaining = ((long)atoi(text) * PUVOICE_SAMPLE_RATE) / 1000;
+        while (remaining > 0 && !cancelled) {
+            int chunk = remaining > PUVOICE_WINDOW_SIZE ? PUVOICE_WINDOW_SIZE : (int)remaining;
+            memset(window, PUVOICE_SILENCE, chunk);
+            sampleSource->play(window, chunk);
+            remaining -= chunk;
+        }
+        return true;
+    }
+
     // engine input buffer
     char input[256];
     memset(input, ' ', sizeof(input));
 
-    if (mode == PUVOICE_MODE_PHONEMES) {
+    if (mode == PUVOICE_MODE_PHONEMES || mode == PUVOICE_MODE_SING_PHONEMES) {
         // raw phoneme input; engine wants the 0x9b end marker
         int length = strlen(text);
         if (length > 255)
@@ -215,7 +230,7 @@ bool PuVoice::speakNow(const char *text, int mode) {
             return false;
     }
 
-    SetSingmode(mode == PUVOICE_MODE_SING ? 1 : 0);
+    SetSingmode(mode == PUVOICE_MODE_SING || mode == PUVOICE_MODE_SING_PHONEMES ? 1 : 0);
     SetSpeed(speed);
     SetPitch(pitch);
     SetMouth(mouth);

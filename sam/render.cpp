@@ -79,6 +79,7 @@ extern int singmode;
 extern unsigned char phonemeIndexOutput[60]; //tab47296
 extern unsigned char stressOutput[60]; //tab47365
 extern unsigned char phonemeLengthOutput[60]; //tab47416
+extern unsigned char singPitchOutput[60];
 
 unsigned char pitches[256]; // tab43008
 
@@ -471,6 +472,9 @@ do
 
     // get number of frames to write
     phase2 = phonemeLengthOutput[Y];
+    // '#' pitch marker on this phoneme overrides the global pitch
+    if (singPitchOutput[Y] != 0)
+        pitch = singPitchOutput[Y];
     Y = mem56;
 
     // copy from the source to the frames list

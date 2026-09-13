@@ -35,18 +35,36 @@ input.onButtonPressed(Button.A, function () {
             robotpuVoice.sing("daisy daisy")
             break
         case 7:
+            // MicroPython speech.sing() style: #nnn pitch + phonemes,
+            // repeated vowels hold the note. Sings the Do-Re-Mi scale.
+            robotpuVoice.singPhonemes("#115DOWWWWWW #103REYYYYYY #94MIYYYYYY #88FAOAOAOAOR #78SOHWWWWW #70LAOAOAOAOR #62TIYYYYYY #58DOWWWWWW")
+            break
+        case 8:
+            // single note via the note block - C4 singing "doe", held
+            robotpuVoice.singNote(SingNote.C4, "DOW", 6)
+            robotpuVoice.singNote(SingNote.E4, "MIY", 6)
+            robotpuVoice.singNote(SingNote.G4, "SOH", 6)
+            robotpuVoice.singNote(SingNote.C5, "DOW", 10)
+            break
+        case 9:
             robotpuVoice.say("first sentence")
             robotpuVoice.say("second sentence")
             robotpuVoice.say("this one is stopped")
             robotpuVoice.stopSpeaking()
             break
-        case 8:
+        case 10:
             serial.writeLine(robotpuVoice.toPhonemes("robot"))
+            break
+        case 11:
+            // rest stays queued in sequence: "wait", 1s of silence, "done"
+            robotpuVoice.say("wait for it")
+            robotpuVoice.rest(1000)
+            robotpuVoice.say("done waiting")
             break
         default:
             break
     }
-    testNumber = (testNumber + 1) % 9
+    testNumber = (testNumber + 1) % 12
 })
 
 robotpuVoice.onSpeechFinished(function () {

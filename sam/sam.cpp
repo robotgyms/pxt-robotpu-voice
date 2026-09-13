@@ -34,10 +34,14 @@ unsigned char A, X, Y;
 unsigned char stress[256]; //numbers from 0 to 8
 unsigned char phonemeLength[256]; //tab40160
 unsigned char phonemeindex[256];
+// Pitch override per phoneme position, set by '#nnn' markers in the input.
+// 0 = use the global pitch. Extends SAM for MicroPython-style singing.
+unsigned char singPitch[256];
 
 unsigned char phonemeIndexOutput[60]; //tab47296
 unsigned char stressOutput[60]; //tab47365
 unsigned char phonemeLengthOutput[60]; //tab47416
+unsigned char singPitchOutput[60];
 
 
 
@@ -128,6 +132,7 @@ void Init()
     {
         phonemeIndexOutput[i] = 0;
         stressOutput[i] = 0;
+        singPitchOutput[i] = 0;
         phonemeLengthOutput[i] = 0;
     }
     phonemeindex[255] = 255; //to prevent buffer overflow // ML : changed from 32 to 255 to stop freezing with long inputs
@@ -215,6 +220,7 @@ void PrepareOutput()
         phonemeIndexOutput[Y] = A;
         phonemeLengthOutput[Y] = phonemeLength[X];
         stressOutput[Y] = stress[X];
+        singPitchOutput[Y] = singPitch[X];
         X++;
         Y++;
     }
@@ -336,11 +342,13 @@ void Insert(unsigned char position/*var57*/, unsigned char mem60, unsigned char 
         phonemeindex[i+1] = phonemeindex[i];
         phonemeLength[i+1] = phonemeLength[i];
         stress[i+1] = stress[i];
+        singPitch[i+1] = singPitch[i];
     }
 
     phonemeindex[position] = mem60;
     phonemeLength[position] = mem59;
     stress[position] = mem58;
+    singPitch[position] = (position > 0) ? singPitch[position-1] : 0;
     return;
 }
 
@@ -401,13 +409,18 @@ int Parser1()
     unsigned char sign1;
     unsigned char sign2;
     unsigned char position = 0;
+    // Pitch set by the last '#nnn' marker; applies until the next one.
+    unsigned char currentSingPitch = 0;
     X = 0;
     A = 0;
     Y = 0;
 
     // CLEAR THE STRESS TABLE
     for(i=0; i<256; i++)
+    {
         stress[i] = 0;
+        singPitch[i] = 0;
+    }
 
   // THIS CODE MATCHES THE PHONEME LETTERS TO THE TABLE
     // pos41078:
@@ -451,6 +464,7 @@ pos41095:
             {
                // STORE THE INDEX OF THE PHONEME INTO THE phomeneIndexTable
                 phonemeindex[position] = Y;
+                singPitch[position] = currentSingPitch;
 
                 // ADVANCE THE POINTER TO THE phonemeIndexTable
                 position++;
@@ -483,6 +497,7 @@ pos41134:
             {
                 // SAVE THE POSITION AND MOVE AHEAD
                 phonemeindex[position] = Y;
+                singPitch[position] = currentSingPitch;
 
                 // ADVANCE THE POINTER
                 position++;
@@ -493,6 +508,21 @@ pos41134:
         }
         Y++;
         if (Y != 81) goto pos41134; //81 is size of PHONEME NAME table
+
+// PITCH MARKER: '#' followed by 1-3 digits sets the pitch for all
+// following phonemes until the next marker (MicroPython sing syntax).
+        if (sign1 == '#')
+        {
+            unsigned int p = 0;
+            while( (input[X] >= '0') && (input[X] <= '9') )
+            {
+                p = p * 10 + (input[X] - '0');
+                X++;
+            }
+            if (p > 255) p = 255;
+            currentSingPitch = (unsigned char)p;
+            continue;
+        }
 
 // FAILED TO MATCH WITH A WILDCARD. ASSUME THIS IS A STRESS
 // CHARACTER. SEARCH THROUGH THE STRESS TABLE

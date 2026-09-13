@@ -24,6 +24,7 @@
 #include "pxt.h"
 #include "voice.h"
 #include <string.h>
+#include <stdio.h>
 
 using namespace pxt;
 
@@ -51,6 +52,24 @@ void pronounceShim(String phonemes) {
 //%
 void singShim(String text) {
     enqueueUtterance(PUVOICE_MODE_SING, text->getUTF8Data());
+}
+
+/**
+ *
+ */
+//%
+void singPhonemesShim(String phonemes) {
+    enqueueUtterance(PUVOICE_MODE_SING_PHONEMES, phonemes->getUTF8Data());
+}
+
+/**
+ *
+ */
+//%
+void restShim(int ms) {
+    char buf[12];
+    snprintf(buf, sizeof(buf), "%d", ms);
+    enqueueUtterance(PUVOICE_MODE_SILENCE, buf);
 }
 
 /**
@@ -116,9 +135,6 @@ void powerDownShim() {
  * Convert English text to a SAM phoneme string without speaking it.
  * Returns an empty string while speech is in progress (the reciter shares
  * state with the renderer and cannot run concurrently).
- */
-/**
- *
  */
 //%
 String toPhonemesShim(String text) {

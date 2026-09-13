@@ -41,6 +41,8 @@ namespace puvoice {
 #define PUVOICE_MODE_SAY        0   // English text -> reciter -> SAM
 #define PUVOICE_MODE_PHONEMES   1   // raw SAM phoneme string
 #define PUVOICE_MODE_SING       2   // English text -> reciter -> SAM sing mode
+#define PUVOICE_MODE_SING_PHONEMES 3 // raw phonemes + '#nnn' pitch markers, sing mode
+#define PUVOICE_MODE_SILENCE    4   // timed rest; text holds the duration in ms
 
 /*
  * Message bus event source/value emitted by this extension.

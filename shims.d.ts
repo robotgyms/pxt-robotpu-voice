@@ -22,6 +22,18 @@ declare namespace puvoice {
     /**
      *
      */
+    //% shim=puvoice::singPhonemesShim
+    function singPhonemesShim(phonemes: string): void;
+
+    /**
+     *
+     */
+    //% shim=puvoice::restShim
+    function restShim(ms: int32): void;
+
+    /**
+     *
+     */
     //% shim=puvoice::setVoiceShim
     function setVoiceShim(speed: int32, pitch: int32, mouth: int32, throat: int32): void;
 
@@ -62,7 +74,9 @@ declare namespace puvoice {
     function powerDownShim(): void;
 
     /**
-     *
+     * Convert English text to a SAM phoneme string without speaking it.
+     * Returns an empty string while speech is in progress (the reciter shares
+     * state with the renderer and cannot run concurrently).
      */
     //% shim=puvoice::toPhonemesShim
     function toPhonemesShim(text: string): string;
