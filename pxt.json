@@ -1,7 +1,7 @@
 {
     "name": "pxt-robotpu-voice",
     "version": "0.0.1",
-    "description": "SAM text-to-speech for micro:bit V2 — talks, sings notes and phonemes, with reduced power usage. Built for Robot PU robots.",
+    "description": "MakeCode extension of SAM text-to-speech voice for Robot PU (micro:bit V2 only). Non-blocking speech queue, voice presets, phonemes, and automatic audio power-down.",
     "license": "MIT",
     "dependencies": {
         "core": "*"
