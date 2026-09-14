@@ -23,6 +23,8 @@
  *     so it scales with the sung notes (singNote(SingNote.Rest) works too).
  * 13: Do-Re-Mi sung twice - first at normal tempo, then at 200% (twice
  *     as fast). Talking speed is unaffected by the singing tempo.
+ * 14: Playable API (music.play style): doe for one beat, a half-beat
+ *     rest, then soh for two beats - each waits until done.
  *
  * While any test runs, LED (0,0) is lit via isSpeaking; when speech
  * finishes, a checkmark appears via onSpeechFinished.
@@ -112,10 +114,19 @@ input.onButtonPressed(Button.A, function () {
             robotpuVoice.singPhonemes("#115DOWWWWWW #103REYYYYYY #94MIYYYYYY")
             robotpuVoice.setSingTempo(0)
             break
+        case 14:
+            // expect: "doe", a short silence, then "soh" held longer -
+            // same shape as music.play(music.tonePlayable(...), ...)
+            music.play(robotpuVoice.singNotePlayable(SingNote.C4, "DOW", music.beat(BeatFraction.Whole)), music.PlaybackMode.UntilDone)
+            music.play(robotpuVoice.singRestPlayable(music.beat(BeatFraction.Half)), music.PlaybackMode.UntilDone)
+            music.play(robotpuVoice.singNotePlayable(SingNote.G4, "SOH", music.beat(BeatFraction.Double)), music.PlaybackMode.UntilDone)
+            music.play(robotpuVoice.singPlayable("daisy daisy"), music.PlaybackMode.UntilDone)
+            music.play(robotpuVoice.sayPlayable("that is all"), music.PlaybackMode.UntilDone)
+            break
         default:
             break
     }
-    testNumber = (testNumber + 1) % 14
+    testNumber = (testNumber + 1) % 15
 })
 
 robotpuVoice.onSpeechFinished(function () {

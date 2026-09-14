@@ -28,12 +28,6 @@ enum VoicePreset {
  * MicroPython's speech.sing() uses for "Do" in the solfege example.
  */
 enum SingNote {
-    /**
-     * A musical rest - silence measured in "hold" units instead of
-     * milliseconds, so it stretches the same way the sung notes do.
-     */
-    //% block="rest"
-    Rest = 0,
     //% block="C3"
     C3 = 229,
     //% block="C#3"
@@ -105,7 +99,13 @@ enum SingNote {
     //% block="A#5"
     ASharp5 = 32,
     //% block="B5"
-    B5 = 30
+    B5 = 30,
+    /**
+     * A musical rest - silence measured in "hold" units instead of
+     * milliseconds, so it stretches the same way the sung notes do.
+     */
+    //% block="rest"
+    Rest = 0
 }
 
 /**
@@ -117,16 +117,22 @@ enum SingNote {
  */
 //% block="Robot PU Voice"
 //% weight=100 color=#c65a00 icon="\uf028"
-//% groups='["Speech", "Voice", "Output", "Advanced"]'
+//% groups='["Speech", "Sing", "Voice", "Output", "Advanced"]'
 namespace robotpuVoice {
 
     const PUVOICE_EVENT_ID = 0x5055;
     const PUVOICE_EVT_DONE = 1;
 
+    // Mirrors the C++ singTempo setting (percent; 0 = voice's own speed)
+    // so playable durations can be converted to vowel-hold units.
+    let singTempoPercent = 0;
+
     /**
      * Speak English text in the background. Digits are spoken as numbers,
-     * e.g. "level 3" is pronounced "level three". Returns immediately;
-     * use "say and wait" or "wait until speech finished" to block.
+     * e.g. "level 3" is pronounced "level three". Returns immediately
+     * unless the utterance queue is full, in which case it waits for room
+     * so nothing is dropped; use "say and wait" or "wait until speech
+     * finished" to block until the words have been spoken.
      * @param text words to say, eg: "Hello, I am Robot PU"
      */
     //% blockId=robotpuvoice_say block="say %text"
@@ -171,7 +177,7 @@ namespace robotpuVoice {
      */
     //% blockId=robotpuvoice_sing block="sing %text"
     //% text.shadow=text
-    //% group="Speech"
+    //% group="Sing"
     //% weight=94
     export function sing(text: string): void {
         singShim(text)
@@ -186,8 +192,8 @@ namespace robotpuVoice {
      */
     //% blockId=robotpuvoice_sing_phonemes block="sing phonemes %phonemes"
     //% phonemes.shadow=text
-    //% group="Speech"
-    //% weight=93
+    //% group="Sing"
+    //% weight=89
     //% advanced=true
     export function singPhonemes(phonemes: string): void {
         singPhonemesShim(phonemes)
@@ -205,23 +211,17 @@ namespace robotpuVoice {
     //% blockId=robotpuvoice_sing_note block="sing note %note syllable %syllable hold %hold"
     //% syllable.shadow=text syllable.defl="DOW"
     //% hold.min=0 hold.max=24 hold.defl=4
-    //% group="Speech"
+    //% group="Sing"
     //% weight=92
+    //% advanced=true
     export function singNote(note: SingNote, syllable: string, hold: number): void {
         if (note == SingNote.Rest) {
             singRest(hold)
             return
         }
-        let s = syllable.trim().toUpperCase()
-        if (s.length == 0 || hold < 0)
+        let s = stretchSyllable(syllable, hold)
+        if (s.length == 0)
             return
-        // stretchable tail: single continuant phoneme (W Y R L M N) or the
-        // last two characters of a vowel digraph (AO, IY, OW, ...)
-        let tail = s.charAt(s.length - 1)
-        if ("WYRLMN".indexOf(tail) < 0 && s.length > 1)
-            tail = s.substr(s.length - 2)
-        for (let i = 0; i < hold; i++)
-            s += tail
         singPhonemesShim("#" + note + s + " ")
     }
 
@@ -232,8 +232,9 @@ namespace robotpuVoice {
      */
     //% blockId=robotpuvoice_sing_rest block="rest %hold beats"
     //% hold.min=0 hold.max=24 hold.defl=4
-    //% group="Speech"
-    //% weight=92
+    //% group="Sing"
+    //% weight=91
+    //% advanced=true
     export function singRest(hold: number): void {
         // ~150 ms per hold unit + a small base, matching the length of a
         // sung syllable stretched by the same hold value.
@@ -254,6 +255,184 @@ namespace robotpuVoice {
         if (ms <= 0)
             return
         restShim(ms)
+    }
+
+    /**
+     * A sound the voice can perform - spoken words, sung words, a sung
+     * note, or a rest. Pass it to the music "play" block just like a tone
+     * or melody:
+     * music.play(singable, music.PlaybackMode.UntilDone)
+     */
+    export class Singable extends music.Playable {
+        _play(playbackMode: music.PlaybackMode) {
+            if (playbackMode === music.PlaybackMode.LoopingInBackground) {
+                this.loop()
+            } else {
+                this._playOnce()
+                if (playbackMode === music.PlaybackMode.UntilDone)
+                    waitUntilDone()
+            }
+        }
+
+        _playOnce() {
+            // subclass
+        }
+    }
+
+    export class SayPlayable extends Singable {
+        constructor(public text: string) {
+            super()
+        }
+
+        _playOnce() {
+            sayShim(this.text)
+        }
+    }
+
+    export class SingTextPlayable extends Singable {
+        constructor(public text: string) {
+            super()
+        }
+
+        _playOnce() {
+            singShim(this.text)
+        }
+    }
+
+    export class SingPhonemesPlayable extends Singable {
+        constructor(public phonemes: string) {
+            super()
+        }
+
+        _playOnce() {
+            singPhonemesShim(this.phonemes)
+        }
+    }
+
+    export class SingNotePlayable extends Singable {
+        constructor(public note: SingNote, public syllable: string, public duration: number) {
+            super()
+        }
+
+        _playOnce() {
+            if (this.note == SingNote.Rest) {
+                restShim(Math.max(0, this.duration))
+                return
+            }
+            // A note at 100% tempo lasts ~200ms plus ~150ms per hold unit;
+            // higher sing tempos shorten it, so scale the holds to fill
+            // the requested duration.
+            let tempo = singTempoPercent <= 0 ? 100 : singTempoPercent
+            let hold = Math.round(Math.max(0, this.duration * tempo / 100 - 200) / 150)
+            let s = stretchSyllable(this.syllable, hold)
+            if (s.length == 0)
+                return
+            singPhonemesShim("#" + this.note + s + " ")
+        }
+    }
+
+    /**
+     * A spoken phrase for the music "play" block.
+     * e.g. music.play(robotpuVoice.sayPlayable("hello"), music.PlaybackMode.UntilDone)
+     * @param text words to say, eg: "hello"
+     */
+    //% blockId=robotpuvoice_say_playable block="spoken words %text"
+    //% text.shadow=text text.defl="hello"
+    //% toolboxParent=music_playable_play toolboxParentArgument=toPlay
+    //% duplicateShadowOnDrag
+    //% group="Speech"
+    //% weight=95
+    export function sayPlayable(text: string): music.Playable {
+        return new SayPlayable(text)
+    }
+
+    /**
+     * Sung words for the music "play" block - English text chanted on a
+     * flat pitch in SAM's sing mode.
+     * e.g. music.play(robotpuVoice.singPlayable("daisy"), music.PlaybackMode.UntilDone)
+     * @param text words to sing, eg: "daisy daisy"
+     */
+    //% blockId=robotpuvoice_sing_playable block="sung words %text"
+    //% text.shadow=text text.defl="daisy daisy"
+    //% toolboxParent=music_playable_play toolboxParentArgument=toPlay
+    //% duplicateShadowOnDrag
+    //% group="Sing"
+    //% weight=100 blockGap=8
+    export function singPlayable(text: string): music.Playable {
+        return new SingTextPlayable(text)
+    }
+
+    /**
+     * A sung note for the music "play" block. Give the note, the syllable
+     * to sing (SAM phonemes, e.g. "DOW" for "doe") and how long to hold
+     * it - the "beat" picker from the music category plugs straight in.
+     * Pick "rest" as the note to stay quiet for the duration.
+     * e.g. music.play(robotpuVoice.singNotePlayable(SingNote.C4, "DOW",
+     *      music.beat(BeatFraction.Whole)), music.PlaybackMode.UntilDone)
+     * @param note the note to sing, eg: SingNote.C4
+     * @param syllable SAM phonemes for the syllable, eg: "DOW"
+     * @param duration how long the note lasts, in milliseconds
+     */
+    //% blockId=robotpuvoice_sing_note_playable block="sung note %note syllable %syllable for %duration"
+    //% syllable.shadow=text syllable.defl="DOW"
+    //% duration.shadow=device_beat
+    //% toolboxParent=music_playable_play toolboxParentArgument=toPlay
+    //% duplicateShadowOnDrag
+    //% group="Sing"
+    //% weight=98
+    export function singNotePlayable(note: SingNote, syllable: string, duration: number): music.Playable {
+        return new SingNotePlayable(note, syllable, duration)
+    }
+
+    /**
+     * A sung rest for the music "play" block - silence that stays queued
+     * in sequence with the notes around it.
+     * e.g. music.play(robotpuVoice.singRestPlayable(music.beat(BeatFraction.Half)),
+     *      music.PlaybackMode.UntilDone)
+     * @param duration how long to stay quiet, in milliseconds
+     */
+    //% blockId=robotpuvoice_sing_rest_playable block="sung rest for %duration"
+    //% duration.shadow=device_beat
+    //% toolboxParent=music_playable_play toolboxParentArgument=toPlay
+    //% duplicateShadowOnDrag
+    //% group="Sing"
+    //% weight=96
+    export function singRestPlayable(duration: number): music.Playable {
+        return new SingNotePlayable(SingNote.Rest, "", duration)
+    }
+
+    /**
+     * Sung SAM phonemes with #nnn pitch markers for the music "play"
+     * block, like MicroPython's speech.sing().
+     * e.g. "#115DOWWWWWW #103REYYYYYY #94MIYYYYYY" sings Do-Re-Mi.
+     * @param phonemes phonemes with #nnn pitch markers, eg: "#115DOWWWWWW"
+     */
+    //% blockId=robotpuvoice_sing_phonemes_playable block="sung phonemes %phonemes"
+    //% phonemes.shadow=text
+    //% toolboxParent=music_playable_play toolboxParentArgument=toPlay
+    //% duplicateShadowOnDrag
+    //% group="Sing"
+    //% weight=90
+    //% advanced=true
+    export function singPhonemesPlayable(phonemes: string): music.Playable {
+        return new SingPhonemesPlayable(phonemes)
+    }
+
+    /**
+     * Repeat a syllable's stretchable tail to lengthen a sung note:
+     * a single continuant phoneme (W Y R L M N) or the last two
+     * characters of a vowel digraph (AO, IY, OW, ...).
+     */
+    function stretchSyllable(syllable: string, hold: number): string {
+        let s = syllable.trim().toUpperCase()
+        if (s.length == 0 || hold < 0)
+            return ""
+        let tail = s.charAt(s.length - 1)
+        if ("WYRLMN".indexOf(tail) < 0 && s.length > 1)
+            tail = s.substr(s.length - 2)
+        for (let i = 0; i < hold; i++)
+            s += tail
+        return s
     }
 
     /**
@@ -371,6 +550,7 @@ namespace robotpuVoice {
     export function setSingTempo(tempo: number): void {
         if (tempo < 0) tempo = 0
         if (tempo > 400) tempo = 400
+        singTempoPercent = tempo
         setSingTempoShim(tempo)
     }
 
