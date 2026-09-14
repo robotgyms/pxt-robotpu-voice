@@ -52,9 +52,11 @@ mid song. Packing a phrase into one ``sing phonemes`` block keeps every
 note in perfect step, and ``||robotpuVoice:wait until speech finished||``
 gives the robot a breath every few phrases so the queue never overflows.
 
-And when a part joins late — or sits out a section — the
-``||robotpuVoice:rest||`` block queues real silence. It waits inside the
-song, exactly like a rest in sheet music.
+And when a part joins late — or sits out a section — a rest queues real
+silence inside the song, exactly like a rest in sheet music. Two forms:
+``||robotpuVoice:rest beats||`` counts in beats (the same unit as a
+note's ``hold``); ``||robotpuVoice:rest (ms)||`` counts raw milliseconds
+for long entrances like these.
 
 ## Step 3: The Riff starts the song
 
@@ -229,8 +231,9 @@ function playPart (myPart: number) {
 
 - **Encore:** shake again — the song replays, no code needed.
 - **New timing:** change each part's ``rest`` — what happens if the lead
-  waits 6 seconds instead of 12? Try a ``rest`` in the *middle* of a part
-  for a dramatic pause, like the harmony's 15-second break.
+  waits 6 seconds instead of 12? For short dramatic pauses inside a part,
+  ``||robotpuVoice:rest beats||`` is easier: ``singRest(4)`` is a
+  one-beat silence, no millisecond maths needed.
 - **Different minions:** each robot could use a different voice —
   ``VoicePreset.Elf`` for the harmony, ``VoicePreset.Dalek`` for the
   stabs. Careful: faster voices sing shorter notes, so the timing shifts.

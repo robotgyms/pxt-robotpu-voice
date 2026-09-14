@@ -106,13 +106,15 @@ robotpuVoice.singNote(SingNote.C5, "YUW", 10)
 
 Nobody wants the song to play the moment the micro:bit turns on! Wrap
 everything in a ``||input:on button A pressed||`` block — say the message
-first, then sing. Add a happy face when it finishes with
-``||robotpuVoice:on speech finished||``.
+first, then sing. A ``||robotpuVoice:rest beats||`` block in between is a
+one-beat breath — the singer collects itself before the song. Add a
+happy face when it finishes with ``||robotpuVoice:on speech finished||``.
 
 ```blocks
 input.onButtonPressed(Button.A, function () {
     robotpuVoice.setVoice(VoicePreset.LittleRobot)
     robotpuVoice.say("Happy birthday to you! Mike!")
+    robotpuVoice.singRest(4)
     robotpuVoice.singNote(SingNote.G4, "HAE", 1)
     robotpuVoice.singNote(SingNote.G4, "PIY", 1)
     robotpuVoice.singNote(SingNote.A4, "BERTH", 4)
@@ -148,6 +150,9 @@ robotpuVoice.onSpeechFinished(function () {
 
 - Change the name — swap ``ROW`` ``BAAT`` for your friend's name in phonemes
   (e.g. ``SAE`` ``MIY`` for "Sammy").
+- Breathe between lines — add ``||robotpuVoice:rest beats||`` blocks
+  (or pick ``rest`` in the ``sing note`` dropdown) at the end of each
+  line of the song.
 - Make it dance — add ``||basic:show leds||`` patterns inside the button
   block between ``singNote`` calls.
 - Try the ``sing phonemes`` block — the whole first line is just
