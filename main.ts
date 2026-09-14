@@ -358,6 +358,23 @@ namespace robotpuVoice {
     }
 
     /**
+     * Set the singing tempo as a percent of the voice's normal speed.
+     * 100 sings at the preset's own pace, 200 is twice as fast, 50 is
+     * half speed. Talking speed is not affected. Set to 0 to sing at the
+     * voice's own speed again.
+     * @param tempo percent of normal singing speed, eg: 100
+     */
+    //% blockId=robotpuvoice_sing_tempo block="set singing tempo %tempo \\%"
+    //% tempo.min=20 tempo.max=400 tempo.defl=100
+    //% group="Voice"
+    //% weight=77
+    export function setSingTempo(tempo: number): void {
+        if (tempo < 0) tempo = 0
+        if (tempo > 400) tempo = 400
+        setSingTempoShim(tempo)
+    }
+
+    /**
      * Set the audio output volume. This controls the micro:bit mixer, so it
      * also affects music blocks.
      * @param volume volume level, eg: 255
@@ -447,6 +464,11 @@ namespace robotpuVoice {
     //% shim=puvoice::restShim
     function restShim(ms: number): void {
         console.log("rest: " + ms + " ms")
+    }
+
+    //% shim=puvoice::setSingTempoShim
+    function setSingTempoShim(tempo: number): void {
+        console.log("sing tempo: " + tempo + "%")
     }
 
     //% shim=puvoice::setVoiceShim

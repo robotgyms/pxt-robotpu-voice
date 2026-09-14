@@ -125,6 +125,7 @@ PuVoice::PuVoice() {
     pitch = 64;
     mouth = 128;
     throat = 128;
+    singTempo = 0;
     windowFill = 0;
     windowBase = 0;
 }
@@ -230,8 +231,18 @@ bool PuVoice::speakNow(const char *text, int mode) {
             return false;
     }
 
-    SetSingmode(mode == PUVOICE_MODE_SING || mode == PUVOICE_MODE_SING_PHONEMES ? 1 : 0);
-    SetSpeed(speed);
+    int singing = (mode == PUVOICE_MODE_SING || mode == PUVOICE_MODE_SING_PHONEMES);
+    SetSingmode(singing ? 1 : 0);
+    // Singing tempo is independent from talking speed: tempo 100 keeps the
+    // voice's own speed, 200 doubles it, 50 halves it (SAM speed is inverse:
+    // smaller value = faster).
+    int s = speed;
+    if (singing && singTempo > 0) {
+        s = speed * 100 / singTempo;
+        if (s < 1) s = 1;
+        if (s > 255) s = 255;
+    }
+    SetSpeed(s);
     SetPitch(pitch);
     SetMouth(mouth);
     SetThroat(throat);

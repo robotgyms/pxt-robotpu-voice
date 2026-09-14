@@ -105,6 +105,10 @@ robotpuVoice.singPhonemes("#115DOWWWWWW #103REYYYYYY #94MIYYYYYY #88FAOAOAOAOR #
 The plain `sing` block takes English text and renders it on a flat pitch
 (SAM sing mode without markers) — useful for robotic chanting.
 
+`set singing tempo %` scales sung note lengths as a percent of the
+voice's normal speed — 100 is unchanged, 200 is twice as fast, 50 half —
+without touching the talking speed. `0` sings at the voice's own pace.
+
 `rest` queues timed silence just like a note — it plays in sequence with
 the queued speech, so a singer can wait a beat and join back in on time.
 For musical rests, `singRest` measures the pause in beats — the same

@@ -21,6 +21,8 @@
  *     the rest stays queued in sequence with the speech.
  * 12: doe - rest - soh using singRest: the silence is measured in beats,
  *     so it scales with the sung notes (singNote(SingNote.Rest) works too).
+ * 13: Do-Re-Mi sung twice - first at normal tempo, then at 200% (twice
+ *     as fast). Talking speed is unaffected by the singing tempo.
  *
  * While any test runs, LED (0,0) is lit via isSpeaking; when speech
  * finishes, a checkmark appears via onSpeechFinished.
@@ -103,10 +105,17 @@ input.onButtonPressed(Button.A, function () {
             robotpuVoice.singRest(4)
             robotpuVoice.singNote(SingNote.G4, "SOH", 8)
             break
+        case 13:
+            // expect: Do-Re-Mi at normal speed, then again twice as fast
+            robotpuVoice.singPhonemes("#115DOWWWWWW #103REYYYYYY #94MIYYYYYY")
+            robotpuVoice.setSingTempo(200)
+            robotpuVoice.singPhonemes("#115DOWWWWWW #103REYYYYYY #94MIYYYYYY")
+            robotpuVoice.setSingTempo(0)
+            break
         default:
             break
     }
-    testNumber = (testNumber + 1) % 13
+    testNumber = (testNumber + 1) % 14
 })
 
 robotpuVoice.onSpeechFinished(function () {

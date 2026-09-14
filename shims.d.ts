@@ -28,6 +28,12 @@ declare namespace puvoice {
     /**
      *
      */
+    //% shim=puvoice::setSingTempoShim
+    function setSingTempoShim(tempo: int32): void;
+
+    /**
+     *
+     */
     //% shim=puvoice::restShim
     function restShim(ms: int32): void;
 

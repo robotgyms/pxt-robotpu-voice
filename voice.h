@@ -75,6 +75,7 @@ class PuVoice {
     int pitch;
     int mouth;
     int throat;
+    int singTempo;                  // percent; 0 = sing at the voice's own speed
 
     bool started;                   // mixer channel created
     volatile bool speaking;         // an utterance is being rendered/played
@@ -87,6 +88,7 @@ public:
 
     void ensureStarted();
     void setVoice(int speed, int pitch, int mouth, int throat);
+    void setSingTempo(int tempoPercent) { singTempo = tempoPercent; }
     void beginUtterance() { speaking = true; cancelled = false; }
     bool speakNow(const char *text, int mode);
     void outputByte(unsigned int pos, unsigned char value);

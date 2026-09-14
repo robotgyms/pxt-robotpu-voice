@@ -66,6 +66,14 @@ void singPhonemesShim(String phonemes) {
  *
  */
 //%
+void setSingTempoShim(int tempo) {
+    voice.setSingTempo(tempo);
+}
+
+/**
+ *
+ */
+//%
 void restShim(int ms) {
     char buf[12];
     snprintf(buf, sizeof(buf), "%d", ms);
