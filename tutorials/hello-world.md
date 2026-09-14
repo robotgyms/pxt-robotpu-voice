@@ -239,7 +239,7 @@ whole show: an introduction, a self-penned poem, a run of sung notes, and
 a short song — then takes a bow when the last sound rings out.
 
 Watch how each block just queues its part: the performer never stops to
-wait, it just keeps stacking the set list — fifteen acts deep.
+wait, it just keeps stacking the set list — sixteen acts deep.
 
 ```blocks
 input.onButtonPressed(Button.A, function () {
@@ -269,6 +269,9 @@ input.onButtonPressed(Button.A, function () {
     // (AY AEM AH LIH TL ROW BAAT on C C G G A A G)
     robotpuVoice.singPhonemes("#115AY4 #115AEM #77AH #77LIH4 #68TL #68ROW #77BAAAAT")
     robotpuVoice.waitUntilDone()
+    // Encore: the thank-you goes through the music play block —
+    // "spoken words" is say() living in a play socket
+    music.play(robotpuVoice.sayPlayable("I am robot P U, small but proud. Thank you!"), music.PlaybackMode.UntilDone)
 })
 robotpuVoice.onSpeechFinished(function () {
     basic.showIcon(IconNames.Happy)
@@ -277,9 +280,9 @@ robotpuVoice.onSpeechFinished(function () {
 
 Every block you met in this tutorial is in there: `say`, `pronounce`,
 `rest`, `set voice`, `sing note`, `rest beats`, `sing phonemes`,
-`set singing tempo`, `wait until speech finished`, and
-`on speech finished` — talking, note singing, and song singing, all from
-one queue.
+`set singing tempo`, `wait until speech finished`, `on speech finished`,
+plus `spoken words` inside ``||music:play||`` — talking, note singing,
+and song singing from one queue, with the playables as an encore.
 
 ## Step 14: You're ready — go build something fun
 
