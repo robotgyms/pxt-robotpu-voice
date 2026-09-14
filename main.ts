@@ -489,7 +489,7 @@ namespace robotpuVoice {
     export function setVoice(preset: VoicePreset): void {
         switch (preset) {
             case VoicePreset.RobotPU:
-                configureVoice(150, 48, 150, 180)
+                configureVoice(180, 68, 180, 180)
                 break
             case VoicePreset.Sam:
                 configureVoice(183, 64, 128, 128)

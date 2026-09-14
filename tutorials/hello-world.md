@@ -144,6 +144,27 @@ input.onButtonPressed(Button.A, function () {
 })
 ```
 
+No serial cable? Scroll the answer on the LEDs instead — and then feed
+the phonemes straight back into ``||robotpuVoice:pronounce phonemes||``
+to hear them:
+
+```blocks
+input.onButtonPressed(Button.A, function () {
+    let p = robotpuVoice.toPhonemes("robot")
+    basic.showString(p)
+    robotpuVoice.pronounce(p)
+})
+```
+
+**Try it:** the display scrolls ``RAA1BAAT`` — the engine's spelling of
+"robot" — and then says it back. Now you can capture the phonemes for any
+word, tweak a letter or a stress digit, and ``pronounce`` your custom
+version.
+
+One catch: ``phonemes for`` returns an empty string while speech is
+playing (the converter shares the voice engine), so check
+``||robotpuVoice:is speaking||`` or wait for quiet first.
+
 The full phoneme table is in the extension's README.
 
 ## Step 9: Make it sing
@@ -244,10 +265,14 @@ wait, it just keeps stacking the set list — sixteen acts deep.
 ```blocks
 input.onButtonPressed(Button.A, function () {
     robotpuVoice.setVoice(VoicePreset.RobotPU)
-    // Act 1: the introduction — plain speech, plus its name in raw
-    // phonemes so it comes out perfectly pronounced
+    // "phonemes for" only works while the voice is idle, so grab the
+    // phoneme spelling of the welcome line before the show begins
+    let stageLine = robotpuVoice.toPhonemes("Please welcome to the stage")
+    // Act 1: the introduction — plain speech, then the welcome line said
+    // through phonemes, plus its name in raw phonemes so it comes out
+    // perfectly pronounced
     robotpuVoice.say("Ladies and gentlemen, boys and girls!")
-    robotpuVoice.say("Please welcome to the stage...")
+    robotpuVoice.pronounce(stageLine)
     robotpuVoice.pronounce("ROW1BAAT PIY5 YUW5!")
     robotpuVoice.rest(600)
     // Act 2: a poem about itself, in a different voice
@@ -257,21 +282,24 @@ input.onButtonPressed(Button.A, function () {
     robotpuVoice.say("I walk and I talk and I sing you a song.")
     robotpuVoice.say("With my micro-bit brain, I cannot go wrong!")
     robotpuVoice.rest(600)
-    // Act 3: a run of sung notes — doe mee soh doe
+    // Act 3: a run of sung notes — doe mee soh, then the high doe goes
+    // through the music play block: real beats instead of hold counts.
+    // "in background" queues it just like sing note; "until done" would
+    // pause the show here while the queue empties first.
     robotpuVoice.setSingTempo(100)
     robotpuVoice.singNote(SingNote.C4, "DOW", 4)
     robotpuVoice.singNote(SingNote.E4, "MIY", 4)
     robotpuVoice.singNote(SingNote.G4, "SOH", 4)
-    robotpuVoice.singNote(SingNote.C5, "DOW", 8)
     robotpuVoice.singRest(2)
+    music.play(robotpuVoice.singNotePlayable(SingNote.C5, "DOW", music.beat(BeatFraction.Double)), music.PlaybackMode.InBackground)
     // Act 4: the short song — "I am a little robot" sung to the tune of
     // Twinkle Twinkle, all packed in one block: one syllable per note
     // (AY AEM AH LIH TL ROW BAAT on C C G G A A G)
     robotpuVoice.singPhonemes("#115AY4 #115AEM #77AH #77LIH4 #68TL #68ROW #77BAAAAT")
-    robotpuVoice.waitUntilDone()
     // Encore: the thank-you goes through the music play block —
     // "spoken words" is say() living in a play socket
     music.play(robotpuVoice.sayPlayable("I am robot P U, small but proud. Thank you!"), music.PlaybackMode.UntilDone)
+    robotpuVoice.waitUntilDone()
 })
 robotpuVoice.onSpeechFinished(function () {
     basic.showIcon(IconNames.Happy)
@@ -279,10 +307,11 @@ robotpuVoice.onSpeechFinished(function () {
 ```
 
 Every block you met in this tutorial is in there: `say`, `pronounce`,
-`rest`, `set voice`, `sing note`, `rest beats`, `sing phonemes`,
+`phonemes for`, `rest`, `set voice`, `sing note`, `rest beats`, `sing phonemes`,
 `set singing tempo`, `wait until speech finished`, `on speech finished`,
-plus `spoken words` inside ``||music:play||`` — talking, note singing,
-and song singing from one queue, with the playables as an encore.
+plus `sung note` and `spoken words` inside ``||music:play||`` — talking,
+note singing, and song singing from one queue, with the playables
+sharing the stage.
 
 ## Step 14: You're ready — go build something fun
 
