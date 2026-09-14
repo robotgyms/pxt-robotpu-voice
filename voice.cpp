@@ -48,17 +48,22 @@ static volatile int qTail = 0;  // next read position (consumer)
 static volatile bool workerStarted = false;
 
 bool enqueueUtterance(int mode, const char *text) {
+    ensureWorker();
+    // If the queue is full, wait for the worker to drain a slot rather than
+    // dropping the utterance - silent loss made long programs (e.g. a song
+    // of 25 queued notes) stop playing after the first few items. The wait
+    // only kicks in beyond PUVOICE_QUEUE_DEPTH-1 pending items, so ordinary
+    // "speak in the background" use still returns immediately.
     int next = (qHead + 1) % PUVOICE_QUEUE_DEPTH;
-    if (next == qTail) {
-        // queue is full; drop the request rather than block the user's fiber
-        return false;
+    while (next == qTail) {
+        fiber_sleep(10);
+        next = (qHead + 1) % PUVOICE_QUEUE_DEPTH;
     }
     Utterance &u = utteranceQueue[qHead];
     u.mode = mode;
     strncpy(u.text, text, PUVOICE_MAX_TEXT);
     u.text[PUVOICE_MAX_TEXT] = 0;
     qHead = next;
-    ensureWorker();
     return true;
 }
 

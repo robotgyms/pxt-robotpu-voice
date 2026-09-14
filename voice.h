@@ -55,7 +55,7 @@ namespace puvoice {
 
 #define PUVOICE_SAMPLE_RATE     22050
 #define PUVOICE_WINDOW_SIZE     4096
-#define PUVOICE_QUEUE_DEPTH     8
+#define PUVOICE_QUEUE_DEPTH     32  // a full song is ~27 queued utterances
 #define PUVOICE_MAX_TEXT        90  // reciter output saturates around 120 phonemes
 
 #define PUVOICE_SILENCE         128 // mid-rail value for 8-bit unsigned samples

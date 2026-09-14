@@ -34,7 +34,12 @@ explicitly unsupported).
 * Click on **Extensions** under the gearwheel menu
 * Search for **https://github.com/robotgyms/pxt-robotpu-voice** and import it
 
-## Examples
+## Speaking
+
+All speech blocks are **queued**: they return immediately and a background
+fiber renders and plays each utterance in order, so the robot keeps running
+other code while it talks. Queued utterances play back-to-back without a
+gap — the audio pipeline only powers down once the queue fully drains.
 
 Say something while the robot keeps running other code:
 
@@ -49,22 +54,20 @@ Speak and wait until done:
 robotpuVoice.sayAndWait("Obstacle detected")
 ```
 
-React when speech finishes:
-
-```blocks
-robotpuVoice.onSpeechFinished(function () {
-    basic.showIcon(IconNames.Happy)
-})
-robotpuVoice.say("I am a robot")
-```
-
 Direct phoneme input for precise pronunciation:
 
 ```blocks
 robotpuVoice.pronounce("AY4 AEM AH KUMPYUW3TER")
 ```
 
-Tune the voice manually (each value is 0–255):
+### Voice presets
+
+`set voice` picks one of eight SAM personalities: `Robot PU` (signature),
+`SAM` (the original C64 voice), `elf`, `little robot`, `stuffy guy`,
+`little old lady`, `extra terrestrial`, `dalek`.
+
+`set voice speed/pitch/mouth/throat` tunes the voice directly (each value
+0–255):
 
 * `speed` — how quickly the voice talks (0 = slow, 255 = fast)
 * `pitch` — how high or low the voice sounds
@@ -76,65 +79,160 @@ robotpuVoice.configureVoice(150, 48, 150, 180)
 robotpuVoice.say("I am a robot")
 ```
 
+`phonemes for` converts English text into the SAM phoneme string without
+speaking it — useful for tuning pronunciation or preparing a
+`pronounce`/`sing phonemes` string:
+
+```blocks
+serial.writeLine(robotpuVoice.toPhonemes("robot"))
+```
+
 See the [original SAM manual](https://github.com/discordier/sam/blob/master/docs/manual.md)
 for the phoneme alphabet and stress marks.
 
 ## Singing
 
-Two ways to sing, matching MicroPython's `speech.sing()`:
+The `sing` blocks work like `say`: each call queues one item and returns,
+and the singer performs the whole sequence in the background, gaplessly.
+This is the recommended way to write songs.
 
-**Note block** — pick a musical note and a syllable; `hold` stretches the
-vowel to lengthen the note:
-
-```blocks
-robotpuVoice.singNote(SingNote.C4, "DOW", 6)
-robotpuVoice.singNote(SingNote.E4, "MIY", 6)
-robotpuVoice.singNote(SingNote.G4, "SOH", 6)
-robotpuVoice.singNote(SingNote.C5, "DOW", 10)
-```
-
-**Pitch-marked phonemes** — `#nnn` sets the pitch for the phonemes after it
-(smaller numbers = higher pitch; `SingNote.C4` = `#115` = middle C). Repeat
-vowels or voiced continuants (`W Y R L M N`) to hold a note. This sings the
-Do-Re-Mi scale, exactly like MicroPython:
+`sing` chants English text on a flat pitch (SAM sing mode):
 
 ```blocks
-robotpuVoice.singPhonemes("#115DOWWWWWW #103REYYYYYY #94MIYYYYYY #88FAOAOAOAOR #78SOHWWWWW #70LAOAOAOAOR #62TIYYYYYY #58DOWWWWWW")
+robotpuVoice.sing("daisy daisy")
 ```
 
-The plain `sing` block takes English text and renders it on a flat pitch
-(SAM sing mode without markers) — useful for robotic chanting.
+`sing note` sings one musical note — choose the note, the syllable in SAM
+phonemes (``HAE`` sounds like "ha"), and a `hold` count that stretches the
+vowel (bigger = longer):
+
+```blocks
+robotpuVoice.singNote(SingNote.G4, "HAE", 1)
+robotpuVoice.singNote(SingNote.G4, "PIY", 1)
+robotpuVoice.singNote(SingNote.A4, "BERTH", 4)
+robotpuVoice.singNote(SingNote.G4, "DEY", 4)
+robotpuVoice.singNote(SingNote.C5, "TUW", 4)
+robotpuVoice.singNote(SingNote.B4, "YUW", 8)
+```
+
+Rests are queued just like notes — each plays in sequence with the speech
+around it — and there is one for every timing style:
+
+* `rest … beats` (`singRest`) — silence measured in `hold` units, so it
+  stretches the same way the sung notes do:
+
+  ```blocks
+  robotpuVoice.singNote(SingNote.C4, "DOW", 4)
+  robotpuVoice.singRest(4)
+  robotpuVoice.singNote(SingNote.G4, "SOH", 8)
+  ```
+
+* `rest` in the `sing note` note dropdown — same thing inline:
+  `sing note rest syllable "" hold 4`.
+* `rest (ms)` — silence in milliseconds, handy between spoken phrases.
+* `sung rest for …` — a playable for `music.play` timed in `music.beat`
+  durations (see below).
+
+`sing phonemes` takes a raw string with `#nnn` pitch markers, like
+MicroPython's `speech.sing()` — each marker sets the pitch for the
+phonemes after it, and repeated vowels hold the note. A whole phrase fits
+in one queued item:
+
+```blocks
+robotpuVoice.singPhonemes("#115DOWWWWWW #103REYYYYYY #94MIYYYYYY")
+```
 
 `set singing tempo %` scales sung note lengths as a percent of the
 voice's normal speed — 100 is unchanged, 200 is twice as fast, 50 half —
 without touching the talking speed. `0` sings at the voice's own pace.
 
-`rest` queues timed silence just like a note — it plays in sequence with
-the queued speech, so a singer can wait a beat and join back in on time.
-For musical rests, `singRest` measures the pause in beats — the same
-unit as a sung note's `hold` — while `rest` takes raw milliseconds:
+### Singing through `music.play`
+
+For beat-true timing or code that must run in step with each note, build a
+*playable* and pass it to the music `play` block — just like a tone or
+melody:
 
 ```blocks
-robotpuVoice.singNote(SingNote.C4, "DOW", 6)
-robotpuVoice.singRest(6)
-robotpuVoice.singNote(SingNote.C4, "DOW", 10)
-robotpuVoice.rest(500)
+music.play(robotpuVoice.singNotePlayable(SingNote.C4, "DOW", music.beat(BeatFraction.Whole)), music.PlaybackMode.UntilDone)
+music.play(robotpuVoice.singRestPlayable(music.beat(BeatFraction.Half)), music.PlaybackMode.UntilDone)
+music.play(robotpuVoice.singNotePlayable(SingNote.G4, "SOH", music.beat(BeatFraction.Double)), music.PlaybackMode.UntilDone)
 ```
 
-(Picking `rest` in `sing note`'s note dropdown works too.)
+The duration socket takes `music.beat(BeatFraction.…)` straight from the
+music category, so notes follow `music.setTempo`. Other playables:
+`sung words` (English on a flat pitch), `sung phonemes` (`#nnn` markers),
+`spoken words`, and `sung rest for …`:
 
-The utterance queue holds three items at once, so pack long phrases into
-`sing phonemes` strings and use `wait until speech finished` to take a
-breath between them.
+```blocks
+music.play(robotpuVoice.singPlayable("daisy daisy"), music.PlaybackMode.UntilDone)
+music.play(robotpuVoice.singPhonemesPlayable("#115DOWWWWWW #103REYYYYYY #94MIYYYYYY"), music.PlaybackMode.UntilDone)
+music.play(robotpuVoice.sayPlayable("that is all"), music.PlaybackMode.UntilDone)
+```
 
-### Tutorials
+Playables render through the same queue and audio pipeline as the `say`/
+`sing` blocks, so the sound is identical — `spoken words` really is `say`
+in a `play` socket. The difference is only the playback mode:
+`in background` behaves like `say` (enqueue and return), `until done`
+behaves like `say and wait`, and `looping in background` repeats the
+phrase until `music.stopAllSounds()`.
+
+### Queued blocks vs `music.play` playables
+
+| | `sing note` / `sing` / `rest` (queued) | playables in `music.play` |
+|---|---|---|
+| Timing | `hold` count / milliseconds | `music.beat` fractions, follows `setTempo` |
+| Sequencing | whole program queues, plays in background | `until done` waits per note |
+| Note transitions | gapless — pipeline stays awake between queued items | pipeline may power down between notes |
+| Program flow | handler returns while the song plays | `until done` blocks; `in background` and `looping in background` modes also work |
+| Best for | songs, talking while the robot moves | syncing LEDs or motion to notes, looping a phrase, programs built around the music category |
+
+## Speech control
+
+* `stop speaking` — clears the queue and abandons the utterance being
+  rendered.
+* `is speaking` — true while speech is playing or queued.
+* `wait until speech finished` — blocks until the queue drains and the
+  last samples play out.
+* `on speech finished` — event raised when everything has been spoken:
+
+```blocks
+robotpuVoice.onSpeechFinished(function () {
+    basic.showIcon(IconNames.Happy)
+})
+```
+
+`rest (ms)` queues timed silence just like a note — it plays in sequence
+with the queued speech, so a singer can wait a beat and join back in on
+time:
+
+```blocks
+robotpuVoice.sing("wait for it")
+robotpuVoice.rest(500)
+robotpuVoice.sing("done waiting")
+```
+
+The utterance queue holds 31 items at once; calls beyond that wait for
+room so queued speech is never dropped. For very long phrases you can
+still pack them into `sing phonemes` strings and use `wait until speech
+finished` to take a breath between them.
+
+## Tutorials
 
 * [Sing Happy Birthday](/tutorials/happy-birthday) — step-by-step: say the
   message, then sing the whole song note by note.
+* [Sing and Talk with music.play](/tutorials/sing-talk-with-music-play) —
+  playable blocks inside the music `play` block: real beats, LED sync,
+  and looping speech.
+* [Sing and Dance](/tutorials/sing-and-dance) — Robot PU walks,
+  moonwalks, and side-steps a *Dangerous*-style groove while the song
+  plays in the background (needs the pxt-robotpu extension).
+* [Sing and Light Show](/tutorials/sing-and-light-show) — low-cost demo
+  on a bare micro:bit: talk and sing while an LED light show runs at the
+  same time. No robot required.
 * [Minion Banana Quartet](/tutorials/minion-banana-quartet) — four
   micro:bits sing the Banana song in parts, started in sync over radio.
 
-### Note to pitch number table
+## Note to pitch number table
 
 SAM pitch ≈ 30000 / frequency(Hz) — smaller numbers are higher notes:
 
@@ -174,7 +272,8 @@ to route it, and `set speech volume` for volume.
 
 When the speech queue drains, the extension waits for the last samples to
 play out and then puts `uBit.audio` to sleep — PWM on pin 0 stops, so the
-amplifier idles instead of dissipating power.
+amplifier idles instead of dissipating power. `power down audio` forces
+the same shutdown immediately.
 
 ## Supported targets
 

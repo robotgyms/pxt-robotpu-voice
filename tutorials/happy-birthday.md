@@ -107,8 +107,14 @@ robotpuVoice.singNote(SingNote.C5, "YUW", 10)
 Nobody wants the song to play the moment the micro:bit turns on! Wrap
 everything in a ``||input:on button A pressed||`` block — say the message
 first, then sing. A ``||robotpuVoice:rest beats||`` block in between is a
-one-beat breath — the singer collects itself before the song. Add a
-happy face when it finishes with ``||robotpuVoice:on speech finished||``.
+one-beat breath — the singer collects itself before the song.
+
+The ``sing note`` blocks are queued: the singer performs them in the
+background, so the button block finishes long before the last note.
+``||robotpuVoice:wait until speech finished||`` keeps the handler alive
+until the final ``C5`` rings out — handy so pressing the button again
+can't start a second song on top of the first. A happy face when it
+finishes comes from ``||robotpuVoice:on speech finished||``.
 
 ```blocks
 input.onButtonPressed(Button.A, function () {
@@ -140,6 +146,7 @@ input.onButtonPressed(Button.A, function () {
     robotpuVoice.singNote(SingNote.C5, "DEY", 4)
     robotpuVoice.singNote(SingNote.D5, "TUW", 4)
     robotpuVoice.singNote(SingNote.C5, "YUW", 10)
+    robotpuVoice.waitUntilDone()
 })
 robotpuVoice.onSpeechFinished(function () {
     basic.showIcon(IconNames.Happy)
@@ -153,7 +160,10 @@ robotpuVoice.onSpeechFinished(function () {
 - Breathe between lines — add ``||robotpuVoice:rest beats||`` blocks
   (or pick ``rest`` in the ``sing note`` dropdown) at the end of each
   line of the song.
-- Make it dance — add ``||basic:show leds||`` patterns inside the button
-  block between ``singNote`` calls.
+- Make it dance — ``||basic:show leds||`` calls between ``sing note``
+  blocks run right away while the notes sing in the background, so the
+  lights race ahead of the song. To keep lights in step, use the
+  ``sung note`` playable inside ``||music:play ... until done||``
+  instead — each note waits for its sound before the next block runs.
 - Try the ``sing phonemes`` block — the whole first line is just
   ``#77HAE #77PIY #68BERTH #77DEY #57TUW #61YUW``. Can you write the rest?
