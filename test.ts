@@ -19,6 +19,8 @@
  * 10: Prints "RAA1BAAT" (or similar phoneme spelling) over serial.
  * 11: "wait for it", exactly 1 second of silence, then "done waiting" -
  *     the rest stays queued in sequence with the speech.
+ * 12: doe - rest - soh using singRest: the silence is measured in beats,
+ *     so it scales with the sung notes (singNote(SingNote.Rest) works too).
  *
  * While any test runs, LED (0,0) is lit via isSpeaking; when speech
  * finishes, a checkmark appears via onSpeechFinished.
@@ -94,10 +96,17 @@ input.onButtonPressed(Button.A, function () {
             robotpuVoice.rest(1000)
             robotpuVoice.say("done waiting")
             break
+        case 12:
+            // expect: "doe", a one-beat silence, then "soh" held long -
+            // the rest lasts about as long as a hold-4 sung note
+            robotpuVoice.singNote(SingNote.C4, "DOW", 4)
+            robotpuVoice.singRest(4)
+            robotpuVoice.singNote(SingNote.G4, "SOH", 8)
+            break
         default:
             break
     }
-    testNumber = (testNumber + 1) % 12
+    testNumber = (testNumber + 1) % 13
 })
 
 robotpuVoice.onSpeechFinished(function () {

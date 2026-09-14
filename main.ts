@@ -28,6 +28,12 @@ enum VoicePreset {
  * MicroPython's speech.sing() uses for "Do" in the solfege example.
  */
 enum SingNote {
+    /**
+     * A musical rest - silence measured in "hold" units instead of
+     * milliseconds, so it stretches the same way the sung notes do.
+     */
+    //% block="rest"
+    Rest = 0,
     //% block="C3"
     C3 = 229,
     //% block="C#3"
@@ -148,7 +154,7 @@ namespace robotpuVoice {
      * Pronounce a string of SAM phonemes in the background.
      * e.g. "I am a computer" is "AY4 AEM AH KUMPYUW3TER".
      * See the README for the full phoneme table.
-     * @param phonemes phonemes to pronounce, eg: "HEHLOW WERLD"
+     * @param phonemes phonemes to pronounce, eg: "/HEHLOW WERLD"
      */
     //% blockId=robotpuvoice_pronounce block="pronounce phonemes %phonemes"
     //% phonemes.shadow=text
@@ -190,6 +196,8 @@ namespace robotpuVoice {
     /**
      * Sing one musical note. Give the syllable to sing (SAM phonemes, e.g.
      * "DOW" for "doe") and how much to stretch the vowel to hold the note.
+     * Use SingNote.Rest to stay quiet for the same length a note with that
+     * hold would take - no millisecond maths needed.
      * @param note the note to sing, eg: SingNote.C4
      * @param syllable SAM phonemes for the syllable, eg: "DOW"
      * @param hold extra vowel repetitions to lengthen the note, eg: 4
@@ -200,6 +208,10 @@ namespace robotpuVoice {
     //% group="Speech"
     //% weight=92
     export function singNote(note: SingNote, syllable: string, hold: number): void {
+        if (note == SingNote.Rest) {
+            singRest(hold)
+            return
+        }
         let s = syllable.trim().toUpperCase()
         if (s.length == 0 || hold < 0)
             return
@@ -211,6 +223,21 @@ namespace robotpuVoice {
         for (let i = 0; i < hold; i++)
             s += tail
         singPhonemesShim("#" + note + s + " ")
+    }
+
+    /**
+     * Rest for a number of beats, measured in "hold" units so it stretches
+     * the same way the sung notes do - no millisecond maths needed.
+     * @param hold how many beats to stay quiet, eg: 4
+     */
+    //% blockId=robotpuvoice_sing_rest block="rest %hold beats"
+    //% hold.min=0 hold.max=24 hold.defl=4
+    //% group="Speech"
+    //% weight=92
+    export function singRest(hold: number): void {
+        // ~150 ms per hold unit + a small base, matching the length of a
+        // sung syllable stretched by the same hold value.
+        rest(200 + 150 * Math.max(0, hold))
     }
 
     /**

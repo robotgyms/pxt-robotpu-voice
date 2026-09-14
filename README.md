@@ -106,13 +106,18 @@ The plain `sing` block takes English text and renders it on a flat pitch
 (SAM sing mode without markers) — useful for robotic chanting.
 
 `rest` queues timed silence just like a note — it plays in sequence with
-the queued speech, so a singer can wait a beat and join back in on time:
+the queued speech, so a singer can wait a beat and join back in on time.
+For musical rests, `singRest` measures the pause in beats — the same
+unit as a sung note's `hold` — while `rest` takes raw milliseconds:
 
 ```blocks
 robotpuVoice.singNote(SingNote.C4, "DOW", 6)
-robotpuVoice.rest(500)
+robotpuVoice.singRest(6)
 robotpuVoice.singNote(SingNote.C4, "DOW", 10)
+robotpuVoice.rest(500)
 ```
+
+(Picking `rest` in `sing note`'s note dropdown works too.)
 
 The utterance queue holds three items at once, so pack long phrases into
 `sing phonemes` strings and use `wait until speech finished` to take a
