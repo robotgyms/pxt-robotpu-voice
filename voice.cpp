@@ -113,8 +113,48 @@ int expandDigits(char *dst, const char *src, int dstLen) {
         } else {
             if (out + 1 > dstLen - 1)
                 return -1;
+            // A run of '.' reaches the engine as several pause phonemes in
+            // a row, which truncates the render - collapse to one pause.
+            if (c == '.' && out > 0 && dst[out - 1] == '.')
+                continue;
             dst[out++] = (c >= 'a' && c <= 'z') ? c - 32 : c;
         }
+    }
+    dst[out] = 0;
+    return out;
+}
+
+/**
+ * Copy a raw phoneme string into dst, keeping only characters the 1982
+ * parser understands: phoneme letters, space, the pause signs (. , ? -),
+ * '/' and '*' prefixes, '#' pitch markers, and digits (stress marks).
+ * Any other character makes SAMMain fail and the whole utterance is
+ * silently dropped, so it is stripped here. Runs of '.' collapse to a
+ * single pause for the same reason as in expandDigits. Returns bytes
+ * written, always <= dstLen-1.
+ */
+int sanitizePhonemes(char *dst, const char *src, int dstLen) {
+    int out = 0;
+    bool pitchMarker = false;  // inside a '#nnn' pitch number
+    for (int i = 0; src[i] != 0 && out < dstLen - 1; i++) {
+        char c = src[i];
+        if (c >= 'a' && c <= 'z')
+            c -= 32;
+        if (c == '#') {
+            pitchMarker = true;
+        } else if (c < '0' || c > '9') {
+            pitchMarker = false;
+        }
+        bool ok = (c >= 'A' && c <= 'Z') ||
+                  c == ' ' || c == '.' || c == ',' || c == '?' ||
+                  c == '-' || c == '/' || c == '*' || c == '#' ||
+                  (pitchMarker && c >= '0' && c <= '9') ||
+                  (c >= '1' && c <= '8');  // stress marks; '0'/'9' are only
+        if (!ok)                           // legal inside '#' pitch numbers
+            continue;
+        if (c == '.' && out > 0 && dst[out - 1] == '.')
+            continue;
+        dst[out++] = c;
     }
     dst[out] = 0;
     return out;
@@ -219,10 +259,7 @@ bool PuVoice::speakNow(const char *text, int mode) {
 
     if (mode == PUVOICE_MODE_PHONEMES || mode == PUVOICE_MODE_SING_PHONEMES) {
         // raw phoneme input; engine wants the 0x9b end marker
-        int length = strlen(text);
-        if (length > 255)
-            length = 255;
-        memcpy(input, text, length);
+        int length = sanitizePhonemes(input, text, 255);
         input[length] = (char)0x9b;
     } else {
         // English text: spell out digits, normalise to upper case, then run

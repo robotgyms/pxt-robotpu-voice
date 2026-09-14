@@ -232,7 +232,56 @@ When speech finishes, the audio hardware powers down automatically — no
 battery wasted humming on pin 0. ``||robotpuVoice:power down audio||``
 forces it immediately if you need silence *right now*.
 
-## Step 13: You're ready — go build something fun
+## Step 13: The grand finale — Robot PU's one-robot show
+
+Time to put every block on stage. Press button A and Robot PU runs the
+whole show: an introduction, a self-penned poem, a run of sung notes, and
+a short song — then takes a bow when the last sound rings out.
+
+Watch how each block just queues its part: the performer never stops to
+wait, it just keeps stacking the set list — fifteen acts deep.
+
+```blocks
+input.onButtonPressed(Button.A, function () {
+    robotpuVoice.setVoice(VoicePreset.RobotPU)
+    // Act 1: the introduction — plain speech, plus its name in raw
+    // phonemes so it comes out perfectly pronounced
+    robotpuVoice.say("Ladies and gentlemen, boys and girls!")
+    robotpuVoice.say("Please welcome to the stage...")
+    robotpuVoice.pronounce("ROW1BAAT PIY5 YUW5!")
+    robotpuVoice.rest(600)
+    // Act 2: a poem about itself, in a different voice
+    robotpuVoice.setVoice(VoicePreset.LittleRobot)
+    robotpuVoice.say("I am robot P U, small but proud.")
+    robotpuVoice.say("My voice is squeaky. My beeps are loud.")
+    robotpuVoice.say("I walk and I talk and I sing you a song.")
+    robotpuVoice.say("With my micro-bit brain, I cannot go wrong!")
+    robotpuVoice.rest(600)
+    // Act 3: a run of sung notes — doe mee soh doe
+    robotpuVoice.setSingTempo(100)
+    robotpuVoice.singNote(SingNote.C4, "DOW", 4)
+    robotpuVoice.singNote(SingNote.E4, "MIY", 4)
+    robotpuVoice.singNote(SingNote.G4, "SOH", 4)
+    robotpuVoice.singNote(SingNote.C5, "DOW", 8)
+    robotpuVoice.singRest(2)
+    // Act 4: the short song — "I am a little robot" sung to the tune of
+    // Twinkle Twinkle, all packed in one block: one syllable per note
+    // (AY AEM AH LIH TL ROW BAAT on C C G G A A G)
+    robotpuVoice.singPhonemes("#115AY4 #115AEM #77AH #77LIH4 #68TL #68ROW #77BAAAAT")
+    robotpuVoice.waitUntilDone()
+})
+robotpuVoice.onSpeechFinished(function () {
+    basic.showIcon(IconNames.Happy)
+})
+```
+
+Every block you met in this tutorial is in there: `say`, `pronounce`,
+`rest`, `set voice`, `sing note`, `rest beats`, `sing phonemes`,
+`set singing tempo`, `wait until speech finished`, and
+`on speech finished` — talking, note singing, and song singing, all from
+one queue.
+
+## Step 14: You're ready — go build something fun
 
 You now know every block. Some project ideas:
 
@@ -245,5 +294,9 @@ You now know every block. Some project ideas:
   tutorial: four micro:bits singing in sync over radio.
 - **Sing Happy Birthday** — the [Happy Birthday](/tutorials/happy-birthday)
   tutorial: a full song, note by note.
+- **Light show** — the [Sing and Light Show](/tutorials/sing-and-light-show)
+  tutorial: sing while LEDs dance, on a bare micro:bit.
+- **Full performance** — the [Sing and Dance](/tutorials/sing-and-dance)
+  tutorial: Robot PU walks and moonwalks while it sings.
 
 Happy hacking — ba-na-naaa!

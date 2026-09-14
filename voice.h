@@ -104,6 +104,11 @@ public:
 // result would not fit.
 int expandDigits(char *dst, const char *src, int dstLen);
 
+// Copy a raw phoneme string, stripping characters the SAM parser cannot
+// handle (they would make the whole utterance fail) and collapsing runs
+// of '.' into one pause. Returns bytes written.
+int sanitizePhonemes(char *dst, const char *src, int dstLen);
+
 // The single voice engine instance (defined in voice.cpp).
 extern PuVoice voice;
 

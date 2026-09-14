@@ -60,8 +60,32 @@ static int expandDigits(char *dst, const char *src, int dstLen) {
             memcpy(dst + out, " POINT", 6); out += 6;
         } else {
             if (out + 1 > dstLen - 1) return -1;
+            if (c == '.' && out > 0 && dst[out - 1] == '.')
+                continue;
             dst[out++] = (c >= 'a' && c <= 'z') ? c - 32 : c;
         }
+    }
+    dst[out] = 0;
+    return out;
+}
+
+// --- same phoneme sanitization as voice.cpp ---------------------------------
+static int sanitizePhonemes(char *dst, const char *src, int dstLen) {
+    int out = 0;
+    bool pitchMarker = false;
+    for (int i = 0; src[i] != 0 && out < dstLen - 1; i++) {
+        char c = src[i];
+        if (c >= 'a' && c <= 'z') c -= 32;
+        if (c == '#') pitchMarker = true;
+        else if (c < '0' || c > '9') pitchMarker = false;
+        bool ok = (c >= 'A' && c <= 'Z') ||
+                  c == ' ' || c == '.' || c == ',' || c == '?' ||
+                  c == '-' || c == '/' || c == '*' || c == '#' ||
+                  (pitchMarker && c >= '0' && c <= '9') ||
+                  (c >= '1' && c <= '8');
+        if (!ok) continue;
+        if (c == '.' && out > 0 && dst[out - 1] == '.') continue;
+        dst[out++] = c;
     }
     dst[out] = 0;
     return out;
@@ -125,12 +149,11 @@ static double estimatePeriod(uint8_t *buf, int from, int to) {
 }
 
 static int say(const char *text, int mode) {
+    long before = totalSamples;
     char input[256];
     memset(input, ' ', sizeof(input));
     if (mode == 1 || mode == 3) {
-        int length = strlen(text);
-        if (length > 255) length = 255;
-        memcpy(input, text, length);
+        int length = sanitizePhonemes(input, text, 255);
         input[length] = (char)0x9b;
     } else {
         int length = expandDigits(input, text, 253);
@@ -156,6 +179,7 @@ static int say(const char *text, int mode) {
     for (int i = 0; i < windowFill; i++) wavByte(window[i]);
     totalSamples += windowFill;
     windowFill = 0;
+    printf("rendered %.2f s\n", (totalSamples - before) / 22050.0);
     return 1;
 }
 
@@ -172,6 +196,18 @@ int main() {
     say("daisy daisy", 2);
     printf("--- sing phonemes: solfege ---\n");
     say("#115DOWWWWWW #103REYYYYYY #94MIYYYYYY #88FAOAOAOAOR #78SOHWWWWW #70LAOAOAOAOR #62TIYYYYYY #58DOWWWWWW", 3);
+    printf("--- say: welcome ellipsis ---\n");
+    say("Please welcome to the stage...", 0);
+    printf("--- say: welcome plain ---\n");
+    say("Please welcome to the stage", 0);
+    printf("--- say: welcome one dot ---\n");
+    say("Please welcome to the stage.", 0);
+    printf("--- phonemes: robot P U ---\n");
+    say("ROW1BAAT PIY5 YUW5!", 1);
+    printf("--- phonemes: no bang ---\n");
+    say("ROW1BAAT PIY5 YUW5", 1);
+    printf("--- phonemes: no digits ---\n");
+    say("ROWBAAT PIY YUW", 1);
 
     wavClose();
     printf("total samples: %ld (%.2f s)\n", totalSamples, totalSamples / 22050.0);

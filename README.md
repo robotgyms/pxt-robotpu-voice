@@ -60,6 +60,11 @@ Direct phoneme input for precise pronunciation:
 robotpuVoice.pronounce("AY4 AEM AH KUMPYUW3TER")
 ```
 
+Phoneme strings accept phoneme letters, spaces, pause signs (`. , ? -`),
+`/` and `*` prefixes, `#nnn` pitch markers, and stress digits `1`–`8`;
+anything else (like `!`) is stripped so a stray character can't silence
+the whole phrase.
+
 ### Voice presets
 
 `set voice` picks one of eight SAM personalities: `Robot PU` (signature),
