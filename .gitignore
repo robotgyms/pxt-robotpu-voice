@@ -11,3 +11,5 @@ package-lock.json
 *.o
 *.wav
 hosttest/puvoice
+hosttest/htest
+*.dSYM/

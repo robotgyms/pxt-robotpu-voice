@@ -108,11 +108,11 @@ robotpuVoice.sing("daisy daisy")
 ```
 
 `sing note` sings one musical note — choose the note, the syllable in SAM
-phonemes (``HAE`` sounds like "ha"), and a `hold` count that stretches the
-vowel (bigger = longer):
+phonemes (``/HAE`` sounds like "ha" — the "h" sound is spelled ``/H``), and a
+`hold` count that stretches the vowel (bigger = longer):
 
 ```blocks
-robotpuVoice.singNote(SingNote.G4, "HAE", 1)
+robotpuVoice.singNote(SingNote.G4, "/HAE", 1)
 robotpuVoice.singNote(SingNote.G4, "PIY", 1)
 robotpuVoice.singNote(SingNote.A4, "BERTH", 4)
 robotpuVoice.singNote(SingNote.G4, "DEY", 4)

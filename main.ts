@@ -418,21 +418,50 @@ namespace robotpuVoice {
         return new SingPhonemesPlayable(phonemes)
     }
 
+    // All two-letter SAM phoneme names - the candidates for a repeatable
+    // syllable tail. One-letter names are covered by the WYRLMN continuants.
+    const SING_DIGRAPHS = [
+        "IY", "IH", "EH", "AE", "AA", "AH", "AO", "UH", "AX", "IX", "ER",
+        "UX", "OH", "RX", "LX", "WX", "YX", "WH", "NX", "DX", "SH", "TH",
+        "ZH", "DH", "CH", "EY", "AY", "OY", "AW", "OW", "UW", "GX", "KX",
+        "UL", "UM", "UN"
+    ]
+
     /**
      * Repeat a syllable's stretchable tail to lengthen a sung note:
-     * a single continuant phoneme (W Y R L M N) or the last two
-     * characters of a vowel digraph (AO, IY, OW, ...).
+     * a single continuant phoneme (W Y R L M N) or a trailing two-letter
+     * phoneme (AO, IY, OW, TH, ...). A consonant that cannot stretch is
+     * peeled off first, so "BAAT" holds the vowel and still lands the T
+     * at the end of the note ("BAAAAAT"), instead of repeating "AT"
+     * which is not a phoneme and would silently drop the whole note.
      */
     function stretchSyllable(syllable: string, hold: number): string {
         let s = syllable.trim().toUpperCase()
         if (s.length == 0 || hold < 0)
             return ""
-        let tail = s.charAt(s.length - 1)
-        if ("WYRLMN".indexOf(tail) < 0 && s.length > 1)
-            tail = s.substr(s.length - 2)
+        let suffix = ""
+        let rest = s
+        let tail = ""
+        while (rest.length > 0 && tail == "") {
+            let last = rest.charAt(rest.length - 1)
+            let pair = rest.length > 1 ? rest.substr(rest.length - 2) : ""
+            if ("WYRLMN".indexOf(last) >= 0)
+                tail = last
+            else if (pair != "" && SING_DIGRAPHS.indexOf(pair) >= 0)
+                tail = pair
+            else {
+                suffix = last + suffix
+                rest = rest.substr(0, rest.length - 1)
+            }
+        }
+        if (tail == "") {
+            rest = s
+            suffix = ""
+            tail = s.charAt(s.length - 1)
+        }
         for (let i = 0; i < hold; i++)
-            s += tail
-        return s
+            rest += tail
+        return rest + suffix
     }
 
     /**

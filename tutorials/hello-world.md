@@ -259,6 +259,8 @@ Time to put every block on stage. Press button A and Robot PU runs the
 whole show: an introduction, a self-penned poem, a run of sung notes, and
 a short song — then takes a bow when the last sound rings out.
 
+See it in action: https://youtube.com/shorts/lvVF9ypYzPM
+
 Watch how each block just queues its part: the performer never stops to
 wait, it just keeps stacking the set list — sixteen acts deep.
 
