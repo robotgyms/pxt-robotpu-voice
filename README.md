@@ -1,5 +1,7 @@
 # Robot PU Voice
 
+[![MakeCode](https://github.com/robotgyms/pxt-robotpu-voice/actions/workflows/makecode.yml/badge.svg)](https://github.com/robotgyms/pxt-robotpu-voice/actions/workflows/makecode.yml)
+
 Text-to-speech for **[Robot PU](https://robotgyms.com/pu)** (and any BBC
 micro:bit **V2**) built on a **rewritten, hardened port** of
 [SAM](https://github.com/s-macke/SAM) — *Software Automatic Mouth*, the
@@ -14,6 +16,9 @@ real-time streaming pipeline. Details in
 This extension is a rewrite of [pxt-billy](https://github.com/adamish/pxt-billy)
 with a different architecture, built for robot hardware:
 
+* **Works on any micro:bit V2** — no robot required, but tuned for
+  Robot PU, whose amplifier and louder speaker give the voice much
+  more presence.
 * **Non-blocking speech** — `say` queues the utterance and returns
   immediately, so the robot can keep walking while it talks.
 * **Automatic power-down** — the audio pipeline is put to sleep as soon as
@@ -30,13 +35,13 @@ with a different architecture, built for robot hardware:
   phoneme string without speaking, useful for tuning pronunciation.
 * **Fixed mouth/throat parameter order** — pxt-billy swaps them between its
   block and its shim, so its own presets are not the documented values.
-* **Patched SAM engine** — See
+* **Patched SAM engine** — see
   [Fixes to the 1982 SAM engine](#fixes-to-the-1982-sam-engine).
 
 micro:bit **V2 only** (the CODAL audio pipeline is required; V1 is
 explicitly unsupported).
 
-See it in action: 
+See it in action:
 - Self Introduction: https://youtube.com/shorts/lvVF9ypYzPM
 - Happy Birthday: https://youtube.com/shorts/sS_rEhxK5sg
 
@@ -244,8 +249,9 @@ finished` to take a breath between them.
   and looping speech.
 * [Vocal Performance](/tutorials/vocal-performance) — a three-song
   medley (*Memory*, *Birds of a Feather*, *Can't Stop the Feeling*) with
-  stage body language: head glances, turns to each side of the room, and
-  a final bow (needs the pxt-robotpu extension).
+  a beat-synced body groove at each song's real BPM, head glances,
+  turns to each side of the room, and a final bow (needs the
+  pxt-robotpu extension).
 * [Sing and Dance — Jackson](/tutorials/sing-and-dance-jackson) — Robot PU
   walks, moonwalks, and side-steps a *Dangerous*-style groove while the
   song plays in the background (needs the pxt-robotpu extension).
@@ -288,10 +294,15 @@ MicroPython songs use a slightly different table (`#115 #103 #94 #88 #78
 
 ## Audio output
 
-Audio is produced through the CODAL mixer, so it plays on the on-board
-speaker **and** pin 0 (the edge connector pin that drives the Robot PU
-speaker amplifier). Use `use on-board speaker` / `output audio to pin 0`
-to route it, and `set speech volume` for volume.
+The extension works on **any micro:bit V2** — no robot required — and
+audio plays on the on-board speaker **and** pin 0 through the CODAL
+mixer. Fair warning: the built-in speaker is small, so the SAM voice
+stays quiet even at full volume. On Robot PU, pin 0 feeds a dedicated
+sound amplifier and a higher-power speaker, so the voice comes out much
+louder and clearer — that is the stage this extension is tuned for.
+
+Use `use on-board speaker` / `output audio to pin 0` to route it, and
+`set speech volume` for volume.
 
 When the speech queue drains, the extension waits for the last samples to
 play out and then puts `uBit.audio` to sleep — PWM on pin 0 stops, so the
