@@ -25,6 +25,17 @@
  *     as fast). Talking speed is unaffected by the singing tempo.
  * 14: Playable API (music.play style): doe for one beat, a half-beat
  *     rest, then soh for two beats - each waits until done.
+ * 15: "quiet" spoken softly, then "loud" at full volume - set speech
+ *     volume drives the micro:bit mixer, so it affects music too.
+ * 16: "speaker test one" on the on-board speaker only, "speaker test
+ *     two" on pin 0 only - the two outputs toggle independently.
+ * 17: "power down test", then the audio pipeline is forced to sleep,
+ *     then "awake again" - the next say wakes it back up automatically.
+ * 18: "in the background" via a playable while a heart shows right
+ *     away, then "finished" - wait until speech finished covers
+ *     playables too, not just the say/sing blocks.
+ * 19: "doe" repeats for about three seconds, then stops - looping in
+ *     background re-queues the playable until music.stopAllSounds().
  *
  * While any test runs, LED (0,0) is lit via isSpeaking; when speech
  * finishes, a checkmark appears via onSpeechFinished.
@@ -123,10 +134,61 @@ input.onButtonPressed(Button.A, function () {
             music.play(robotpuVoice.singPlayable("daisy daisy"), music.PlaybackMode.UntilDone)
             music.play(robotpuVoice.sayPlayable("that is all"), music.PlaybackMode.UntilDone)
             break
+        case 15:
+            // expect: "quiet" noticeably softer, then "loud" at full
+            // volume - the block drives the mixer volume, so music is
+            // affected the same way
+            robotpuVoice.setVolume(60)
+            robotpuVoice.say("quiet")
+            robotpuVoice.waitUntilDone()
+            robotpuVoice.setVolume(255)
+            robotpuVoice.say("loud")
+            break
+        case 16:
+            // expect: "speaker test one" only on the on-board speaker
+            // (pin 0 off), then "speaker test two" only on pin 0 - on a
+            // bare micro:bit the second phrase is silent; on Robot PU it
+            // comes out of the robot speaker. Both outputs end re-enabled.
+            robotpuVoice.outputToPin0(false)
+            robotpuVoice.say("speaker test one")
+            robotpuVoice.waitUntilDone()
+            robotpuVoice.outputToPin0(true)
+            robotpuVoice.useOnboardSpeaker(false)
+            robotpuVoice.say("speaker test two")
+            robotpuVoice.waitUntilDone()
+            robotpuVoice.useOnboardSpeaker(true)
+            break
+        case 17:
+            // expect: "power down test" plays, the pipeline is forced to
+            // sleep, then "awake again" - the next say wakes the audio
+            // pipeline back up on its own
+            robotpuVoice.sayAndWait("power down test")
+            robotpuVoice.powerDownAudio()
+            basic.pause(500)
+            robotpuVoice.say("awake again")
+            break
+        case 18:
+            // expect: the heart shows immediately while "in the
+            // background" is still playing (playable in background mode),
+            // then "finished" - wait until speech finished drains the
+            // queue for playables exactly like for say/sing
+            music.play(robotpuVoice.sayPlayable("in the background"), music.PlaybackMode.InBackground)
+            basic.showIcon(IconNames.Heart)
+            robotpuVoice.waitUntilDone()
+            robotpuVoice.say("finished")
+            break
+        case 19:
+            // expect: "doe" repeats for about three seconds then stops -
+            // looping in background re-queues the playable until
+            // music.stopAllSounds()
+            music.play(robotpuVoice.singPhonemesPlayable("#115DOWWWWWW"), music.PlaybackMode.LoopingInBackground)
+            basic.pause(3000)
+            music.stopAllSounds()
+            break
         default:
             break
     }
-    testNumber = (testNumber + 1) % 15
+    testNumber = (testNumber + 1) % 20
 })
 
 robotpuVoice.onSpeechFinished(function () {

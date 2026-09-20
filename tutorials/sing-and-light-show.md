@@ -167,7 +167,7 @@ the performer queues its whole act, then walks out on stage.
 - **Tempo change** — ``||robotpuVoice:set singing tempo||`` at 150 makes
   the same groove faster; make the dance keep up by shortening the
   pauses.
-- **Real robot moves** — the [Sing and Dance](/tutorials/sing-and-dance)
+- **Real robot moves** — the [Sing and Dance — Jackson](/tutorials/sing-and-dance-jackson)
   tutorial makes Robot PU itself walk, moonwalk, and side-step along to
   this same groove (needs the pxt-robotpu extension).
 - **Solo act** — write your own groove: any row of ``sing note`` blocks

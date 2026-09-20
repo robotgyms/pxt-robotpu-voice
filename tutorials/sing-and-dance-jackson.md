@@ -108,37 +108,34 @@ Announce, queue the whole song, then run the choreography — the song and
 the moves play out together:
 
 ```blocks
-input.onButtonPressed(Button.A, function () {
-    robotpuVoice.setVoice(VoicePreset.LittleRobot)
-    robotpuVoice.say("Dangerous!")
-    for (let i = 0; i < 2; i++) {
-        robotpuVoice.singNote(SingNote.E4, "DUHN", 1)
-        robotpuVoice.singNote(SingNote.E4, "DUHN", 1)
-        robotpuVoice.singNote(SingNote.G4, "DAH", 2)
-        robotpuVoice.singNote(SingNote.E4, "DUHN", 1)
-        robotpuVoice.singNote(SingNote.D4, "DAH", 2)
-        robotpuVoice.singNote(SingNote.E4, "DUHN", 6)
-        robotpuVoice.singRest(2)
-    }
-    robotpuVoice.say("Hee hee! Shamone!")
-    robotPuPro.start(robotPuPro.Action.Walk, 4)
-    while (!robotPuPro.isDone(robotPuPro.Action.Walk)) {
-        basic.pause(50)
-    }
-    robotPuPro.start(robotPuPro.Action.WalkBackward, 4)
-    while (!robotPuPro.isDone(robotPuPro.Action.WalkBackward)) {
-        basic.pause(50)
-    }
-    for (let i = 0; i < 40; i++) {
-        robotPuPro.sideStep(-1)
-    }
-    for (let i = 0; i < 40; i++) {
-        robotPuPro.sideStep(1)
-    }
-    robotpuVoice.waitUntilDone()
-    robotPuPro.startAndWait(robotPuPro.Action.Stand, 1)
-    basic.showIcon(IconNames.Happy)
-})
+robotpuVoice.setVoice(VoicePreset.LittleRobot)
+robotpuVoice.say("Dangerous!")
+for (let i = 0; i < 2; i++) {
+    robotpuVoice.singNote(SingNote.E4, "DUHN", 1)
+    robotpuVoice.singNote(SingNote.E4, "DUHN", 1)
+    robotpuVoice.singNote(SingNote.G4, "DAH", 2)
+    robotpuVoice.singNote(SingNote.E4, "DUHN", 1)
+    robotpuVoice.singNote(SingNote.D4, "DAH", 2)
+    robotpuVoice.singNote(SingNote.E4, "DUHN", 6)
+    robotpuVoice.singRest(2)
+}
+robotpuVoice.say("Hee hee! Shamone!")
+robotPuPro.start(robotPuPro.Action.Walk, 4)
+while (!robotPuPro.isDone(robotPuPro.Action.Walk)) {
+    basic.pause(50)
+}
+robotPuPro.start(robotPuPro.Action.WalkBackward, 4)
+while (!robotPuPro.isDone(robotPuPro.Action.WalkBackward)) {
+    basic.pause(50)
+}
+for (let i = 0; i < 40; i++) {
+    robotPuPro.sideStep(-1)
+}
+for (let i = 0; i < 40; i++) {
+    robotPuPro.sideStep(1)
+}
+robotpuVoice.waitUntilDone()
+robotPuPro.startAndWait(robotPuPro.Action.Stand, 1)
 ```
 
 The walk out, the moonwalk back, the side-step shuffle — then

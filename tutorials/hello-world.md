@@ -332,7 +332,7 @@ You now know every block. Some project ideas:
   tutorial: a full song, note by note.
 - **Light show** — the [Sing and Light Show](/tutorials/sing-and-light-show)
   tutorial: sing while LEDs dance, on a bare micro:bit.
-- **Full performance** — the [Sing and Dance](/tutorials/sing-and-dance)
-  tutorial: Robot PU walks and moonwalks while it sings.
+- **Full performance** — the [Vocal Performance](/tutorials/vocal-performance)
+  tutorial: Robot PU sings a three-song medley while it works the stage.
 
 Happy hacking — ba-na-naaa!

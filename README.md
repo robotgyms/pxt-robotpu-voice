@@ -1,9 +1,15 @@
 # Robot PU Voice
 
 Text-to-speech for **[Robot PU](https://robotgyms.com/pu)** (and any BBC
-micro:bit **V2**) based on
+micro:bit **V2**) built on a **rewritten, hardened port** of
 [SAM](https://github.com/s-macke/SAM) — *Software Automatic Mouth*, the
 legendary speech synthesizer from the Commodore C64 (1982).
+
+This is not the stock engine: the bundled SAM carries fixes for
+long-standing bugs — endless scans, buffer overruns, reads before
+index 0, silently dropped notes — plus a cancellable renderer and a
+real-time streaming pipeline. Details in
+[Fixes to the 1982 SAM engine](#fixes-to-the-1982-sam-engine).
 
 This extension is a rewrite of [pxt-billy](https://github.com/adamish/pxt-billy)
 with a different architecture, built for robot hardware:
@@ -24,13 +30,15 @@ with a different architecture, built for robot hardware:
   phoneme string without speaking, useful for tuning pronunciation.
 * **Fixed mouth/throat parameter order** — pxt-billy swaps them between its
   block and its shim, so its own presets are not the documented values.
+* **Patched SAM engine** — See
+  [Fixes to the 1982 SAM engine](#fixes-to-the-1982-sam-engine).
 
 micro:bit **V2 only** (the CODAL audio pipeline is required; V1 is
 explicitly unsupported).
 
 See it in action: 
 - Self Introduction: https://youtube.com/shorts/lvVF9ypYzPM
-- Happy Birthdayhttps://youtube.com/shorts/sS_rEhxK5sg
+- Happy Birthday: https://youtube.com/shorts/sS_rEhxK5sg
 
 ## Add to a MakeCode project
 
@@ -221,8 +229,9 @@ robotpuVoice.rest(500)
 robotpuVoice.sing("done waiting")
 ```
 
-The utterance queue holds 31 items at once; calls beyond that wait for
-room so queued speech is never dropped. For very long phrases you can
+The utterance queue holds 3 items at once; calls beyond that wait for
+room so queued speech is never dropped — handy for a singer that stays
+a few notes ahead of the voice. For very long phrases you can
 still pack them into `sing phonemes` strings and use `wait until speech
 finished` to take a breath between them.
 
@@ -233,9 +242,13 @@ finished` to take a breath between them.
 * [Sing and Talk with music.play](/tutorials/sing-talk-with-music-play) —
   playable blocks inside the music `play` block: real beats, LED sync,
   and looping speech.
-* [Sing and Dance](/tutorials/sing-and-dance) — Robot PU walks,
-  moonwalks, and side-steps a *Dangerous*-style groove while the song
-  plays in the background (needs the pxt-robotpu extension).
+* [Vocal Performance](/tutorials/vocal-performance) — a three-song
+  medley (*Memory*, *Birds of a Feather*, *Can't Stop the Feeling*) with
+  stage body language: head glances, turns to each side of the room, and
+  a final bow (needs the pxt-robotpu extension).
+* [Sing and Dance — Jackson](/tutorials/sing-and-dance-jackson) — Robot PU
+  walks, moonwalks, and side-steps a *Dangerous*-style groove while the
+  song plays in the background (needs the pxt-robotpu extension).
 * [Sing and Light Show](/tutorials/sing-and-light-show) — low-cost demo
   on a bare micro:bit: talk and sing while an LED light show runs at the
   same time. No robot required.
@@ -284,6 +297,55 @@ When the speech queue drains, the extension waits for the last samples to
 play out and then puts `uBit.audio` to sleep — PWM on pin 0 stops, so the
 amplifier idles instead of dissipating power. `power down audio` forces
 the same shutdown immediately.
+
+## Fixes to the 1982 SAM engine
+
+The bundled `sam/` sources are the s-macke C port with a pile of bug
+fixes. The original code has buffer overruns, unterminated scans, and
+reads before the start of arrays — on a microcontroller those hang or
+corrupt the render instead of just sounding wrong:
+
+* **Endless scans** — `Parser1` scans for the `0x9b` end marker, and
+  `SAMMain` overwrote the `255` terminator `Init()` installs with `32`,
+  so a scan that reached index 255 never stopped. `SetInput` now
+  guarantees the marker exists and the terminator survives.
+* **Reads before index 0** — six rewrite rules peek at the previous
+  phoneme with `phonemeindex[pos-1]`; on the first phoneme that reads
+  before the array. All of them are guarded now.
+* **Clobbered terminator** — `Insert()` could write at index 255, the
+  slot every downstream scan relies on; writes there are refused, and
+  `flags[index]` lookups guard the `255` end marker.
+* **Output chunk overrun** — `PrepareOutput` fills 60-entry output
+  arrays where slot 59 must carry the terminator; it now flushes a full
+  chunk like the 254 marker does, and `Render` bounds its scan at 60.
+* **Wrong phoneme lengths** — the `CH`/`J` splits and the glottal-stop
+  insert passed a stale register (`mem59`) as the new phoneme's length;
+  they now use `phonemeLengthTable`.
+* **Multi-character literals** — the reciter indexed its rule tables
+  with `mem64 - 'AA'` and compared against `'YY'` — implementation-
+  defined constants that happen to work on some compilers. Replaced
+  with single characters plus a bounds check on the table index.
+* **Unstoppable renders** — `Render` had no way out mid-utterance, so
+  `stop speaking` used to wait for every frame to finish; a flag the
+  render loop checks now bails out mid-note.
+* **Out-of-order samples** — the renderer writes a few samples ahead of
+  its position counter; output is collected into a fixed window keyed
+  by sample index instead of assuming strict ordering.
+* **Fragile input** — one character the parser rejects (like `!`) used
+  to fail the whole utterance, and a run of `.` pause signs truncated
+  the render. Phoneme input is sanitized and pauses collapsed before
+  the engine sees it, and the reciter output gets a guaranteed NUL
+  bound before `SetInput`'s `strlen` runs.
+* **Dropped song notes** — `sing note` used to repeat a syllable's last
+  two letters as the hold, so `"BAAT"` became `BAATATAT…` where `AT` is
+  not a phoneme and the whole note rendered as silence. Trailing
+  consonants are peeled off so the vowel stretches: `"BAAAAAAT"`.
+* **RAM** — the C64 pitch `timetable` is `const` so it lives in flash.
+
+On top of that sits the concurrency layer the single-threaded original
+never needed: an IRQ-guarded utterance queue, a generation counter so a
+cancelled batch can't resurrect, and a lock around the reciter's
+file-static state so `phonemes for` can't corrupt a render in flight.
 
 ## Supported targets
 
