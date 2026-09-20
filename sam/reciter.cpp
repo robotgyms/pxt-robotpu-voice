@@ -167,7 +167,10 @@ pos36677:
     }
 
     // go to the right rules for this character.
-    XX = mem64 - 'AA';
+    // ('AA' in the original was a multichar literal whose low byte happens
+    // to equal 'A'; the rule tables are indexed by letter offset 0..25.)
+    XX = mem64 - 'A';
+    if (XX > 25) return 0;
     mem62 = tab37489[XX] | (tab37515[XX]<<8);
 
     // -------------------------------------
@@ -342,7 +345,7 @@ pos37019:
     XX = mem59;
     XX--;
     AA = inputtemp[XX];
-    if ((AA == 'E') || (AA == 'I') || (AA == 'YY')) goto pos37014;
+    if ((AA == 'E') || (AA == 'I') || (AA == 'Y')) goto pos37014;
     goto pos36700;
     // --------------
 

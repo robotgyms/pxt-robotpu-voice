@@ -687,6 +687,7 @@ namespace robotpuVoice {
 
     //% shim=puvoice::stopShim
     function stopShim(): void {
+        console.log("stop speaking")
     }
 
     //% shim=puvoice::isBusyShim
@@ -696,18 +697,22 @@ namespace robotpuVoice {
 
     //% shim=puvoice::setVolumeShim
     function setVolumeShim(volume: number): void {
+        music.setVolume(volume)
     }
 
     //% shim=puvoice::setSpeakerEnabledShim
     function setSpeakerEnabledShim(on: boolean): void {
+        console.log("speaker enabled: " + on)
     }
 
     //% shim=puvoice::setAudioPinEnabledShim
     function setAudioPinEnabledShim(on: boolean): void {
+        console.log("audio pin enabled: " + on)
     }
 
     //% shim=puvoice::powerDownShim
     function powerDownShim(): void {
+        console.log("power down audio")
     }
 
     //% shim=puvoice::toPhonemesShim

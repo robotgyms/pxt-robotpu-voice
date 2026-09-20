@@ -7,6 +7,7 @@
 
 namespace puvoice {
     int debug = 0;
+    volatile bool renderAborted = false;
     static long samples = 0;
     void SamOutputByte(unsigned int pos, unsigned char value) {
         if (value != 128) samples++;

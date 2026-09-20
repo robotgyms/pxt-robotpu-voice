@@ -59,6 +59,10 @@ void SetInput(char *_input)
     for(i=0; i<l; i++)
         input[i] = _input[i];
     input[l] = 0;
+    // Parser1 scans for the 0x9b end marker; guarantee one exists so a
+    // malformed buffer can never send the parser into an endless scan.
+    if (memchr(input, (char)0x9b, 255) == NULL)
+        input[254] = (char)0x9b;
 }
 
 void SetSpeed(unsigned char _speed) {speed = _speed;}
@@ -144,7 +148,9 @@ void Init()
 int SAMMain()
 {
     Init();
-    phonemeindex[255] = 32; //to prevent buffer overflow
+    // Keep the 255 terminator Init() installed: writing 32 here undoes it,
+    // and a scan that reaches index 255 would never find the terminator.
+    phonemeindex[255] = 255;
 
     if (!Parser1()) return 0;
     if (debug)
@@ -215,6 +221,16 @@ void PrepareOutput()
         {
             X++;
             continue;
+        }
+
+        // The output arrays hold 60 entries and slot 59 must carry the 255
+        // terminator - flush a full chunk like the 254 marker does so a long
+        // phoneme list cannot run off the end.
+        if (Y >= 59)
+        {
+            phonemeIndexOutput[Y] = 255;
+            Render();
+            Y = 0;
         }
 
         phonemeIndexOutput[Y] = A;
@@ -337,6 +353,10 @@ void CopyStress()
 void Insert(unsigned char position/*var57*/, unsigned char mem60, unsigned char mem59, unsigned char mem58)
 {
     int i;
+    // Never write at index 255: that slot holds the terminator every
+    // downstream scan relies on - clobbering it would hang those loops.
+    if (position >= 255)
+        return;
     for(i=253; i >= position; i--) // ML : always keep last safe-guarding 255
     {
         phonemeindex[i+1] = phonemeindex[i];
@@ -467,7 +487,8 @@ pos41095:
                 singPitch[position] = currentSingPitch;
 
                 // ADVANCE THE POINTER TO THE phonemeIndexTable
-                position++;
+                // (saturate at 254: index 255 is the terminator)
+                if (position < 254) position++;
                 // ADVANCE THE POINTER TO THE phonemeInputBuffer
                 X++;
 
@@ -499,8 +520,8 @@ pos41134:
                 phonemeindex[position] = Y;
                 singPitch[position] = currentSingPitch;
 
-                // ADVANCE THE POINTER
-                position++;
+                // ADVANCE THE POINTER (saturate at 254: index 255 is the terminator)
+                if (position < 254) position++;
 
                 // CONTINUE THROUGH THE LOOP
                 continue;
@@ -546,7 +567,10 @@ pos41134:
             return 0;
         }
 // SET THE STRESS FOR THE PRIOR PHONEME
-        stress[position-1] = Y;
+        // (ignore a stress marker before the first phoneme: position-1
+        // would write stress[-1])
+        if (position > 0)
+            stress[position-1] = Y;
     } //while
 }
 
@@ -696,7 +720,7 @@ void Parser2()
 
         if (debug) if (A==20) printf("RULE: insert WX following diphtong NOT ending in IY sound\n");
         if (debug) if (A==21) printf("RULE: insert YX following diphtong ending in IY sound\n");
-        Insert(pos+1, A, mem59, mem58);
+        Insert(pos+1, A, phonemeLengthTable[A], mem58);
         X = pos;
 // Jump to ???
         goto pos41749;
@@ -724,7 +748,7 @@ pos41466:
 // Change UL to AX
         phonemeindex[X] = 13;  // 'AX'
 // Perform insert. Note code below may jump up here with different values
-        Insert(X+1, A, mem59, mem58);
+        Insert(X+1, A, phonemeLengthTable[A], mem58);
         pos++;
 // Move to next phoneme
         continue;
@@ -803,7 +827,7 @@ pos41503:
 // Insert a glottal stop and move forward
                             if (debug) printf("RULE: Insert glottal stop between two stressed vowels with space between them\n");
                             // 31 = 'Q'
-                            Insert(X, 31, mem59, 0);
+                            Insert(X, 31, phonemeLengthTable[31], 0);
                             pos++;
                             continue;
                         }
@@ -822,6 +846,9 @@ pos41503:
         X = pos;
         A = phonemeindex[pos];
         if (A != 23) goto pos41611;     // 'R'
+
+// No prior phoneme: none of the *R rules can fire
+        if (pos == 0) {pos++; continue;}
 
 // Look at prior phoneme
         X--;
@@ -873,7 +900,7 @@ pos41611:
         if (A == 24)    // 'L'
         {
 // If prior phoneme does not have VOWEL flag set, move to next phoneme
-            if ((flags[phonemeindex[pos-1]] & 128) == 0) {pos++; continue;}
+            if (pos == 0 || (flags[phonemeindex[pos-1]] & 128) == 0) {pos++; continue;}
 // Prior phoneme has VOWEL flag set, so change L to LX and move to next phoneme
             if (debug) printf("RULE: <VOWEL> L -> <VOWEL> LX\n");
             phonemeindex[X] = 19;     // 'LX'
@@ -892,7 +919,7 @@ pos41611:
         if (A == 32)    // 'S'
         {
 // If prior phoneme is not G, move to next phoneme
-            if (phonemeindex[pos-1] != 60) {pos++; continue;}
+            if (pos == 0 || phonemeindex[pos-1] != 60) {pos++; continue;}
 // Replace S with Z and move on
             if (debug) printf("RULE: G S -> G Z\n");
             phonemeindex[pos] = 38;    // 'Z'
@@ -960,7 +987,7 @@ pos41611:
 // Replace with softer version?
         A = flags[Y] & 1;
         if (A == 0) goto pos41749;
-        A = phonemeindex[pos-1];
+        A = (pos == 0) ? 0 : phonemeindex[pos-1];
         if (A != 32)    // 'S'
         {
             A = Y;
@@ -985,6 +1012,8 @@ pos41749:
         A = phonemeindex[X];
         if (A == 53)    // 'UW'
         {
+// No prior phoneme: the <ALVEOLAR> UW rule cannot fire
+            if (X == 0) {pos++; continue;}
 // ALVEOLAR flag set?
             Y = phonemeindex[X-1];
             A = flags2[Y] & 4;
@@ -1005,7 +1034,7 @@ pos41779:
         {
             //        pos41783:
             if (debug) printf("CH -> CH CH+1\n");
-            Insert(X+1, A+1, mem59, stress[X]);
+            Insert(X+1, A+1, phonemeLengthTable[A+1], stress[X]);
             pos++;
             continue;
         }
@@ -1020,7 +1049,7 @@ pos41788:
         if (A == 44) // 'J'
         {
             if (debug) printf("J -> J J+1\n");
-            Insert(X+1, A+1, mem59, stress[X]);
+            Insert(X+1, A+1, phonemeLengthTable[A+1], stress[X]);
             pos++;
             continue;
         }
@@ -1043,7 +1072,7 @@ pos41812:
 
 
 // If prior phoneme is not a vowel, continue processing phonemes
-        if ((flags[phonemeindex[X-1]] & 128) == 0) {pos++; continue;}
+        if (X == 0 || (flags[phonemeindex[X-1]] & 128) == 0) {pos++; continue;}
 
 // Get next phoneme
         X++;
@@ -1205,8 +1234,9 @@ if (debug) printf("phoneme %d (%c%c) length %d\n", X, signInputTable1[phonemeind
             else
             mem56 = flags[index];
 
-            // not a consonant
-            if ((flags[index] & 64) == 0)
+            // not a consonant (index 255 = end marker: take the voiced/
+            // unvoiced path, which is what mem56 = 65 was prepared for)
+            if (index != 255 && (flags[index] & 64) == 0)
             {
                 // RX or LX?
                 if ((index == 18) || (index == 19))  // 'RX' & 'LX'
@@ -1215,8 +1245,8 @@ if (debug) printf("phoneme %d (%c%c) length %d\n", X, signInputTable1[phonemeind
                     X++;
                     index = phonemeindex[X];
 
-                    // next phoneme a consonant?
-                    if ((flags[index] & 64) != 0) {
+                    // next phoneme a consonant? (255 = end marker)
+                    if (index != 255 && (flags[index] & 64) != 0) {
                         // RULE: <VOWEL> RX | LX <CONSONANT>
 
 
@@ -1421,11 +1451,9 @@ if (debug) printf("phoneme %d (%c%c) length %d\n", debugX-1, signInputTable1[pho
         {
             // R*, L*, W*, Y*
 
-            // get the prior phoneme
-            index = phonemeindex[X-1];
-
+            // get the prior phoneme (X == 0: none exists, rule cannot fire)
             // prior phoneme a stop consonant>
-            if((flags[index] & 2) != 0) {
+            if(X > 0 && (flags[phonemeindex[X-1]] & 2) != 0) {
                              // Rule: <LIQUID CONSONANT> <DIPHTONG>
 
 if (debug) printf("RULE: <LIQUID CONSONANT> <DIPHTONG> - decrease by 2\n");

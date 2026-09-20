@@ -46,6 +46,23 @@ static Utterance utteranceQueue[PUVOICE_QUEUE_DEPTH];
 static volatile int qHead = 0;  // next write position (producer)
 static volatile int qTail = 0;  // next read position (consumer)
 static volatile bool workerStarted = false;
+// Bumped by clearQueue() so a producer blocked on a full queue notices that
+// its pending utterance belongs to a cancelled batch and drops it.
+static volatile unsigned queueGeneration = 0;
+
+// The reciter globals live in file scope, so TextToPhonemes must be
+// serialized across fibers (worker vs toPhonemesShim callers).
+static volatile int reciterLock = 0;
+
+bool reciterTryLock() {
+    return __sync_bool_compare_and_swap(&reciterLock, 0, 1);
+}
+
+void reciterUnlock() {
+    __sync_lock_release(&reciterLock);
+}
+
+volatile bool renderAborted = false;
 
 bool enqueueUtterance(int mode, const char *text) {
     ensureWorker();
@@ -54,26 +71,43 @@ bool enqueueUtterance(int mode, const char *text) {
     // of 25 queued notes) stop playing after the first few items. The wait
     // only kicks in beyond PUVOICE_QUEUE_DEPTH-1 pending items, so ordinary
     // "speak in the background" use still returns immediately.
-    int next = (qHead + 1) % PUVOICE_QUEUE_DEPTH;
-    while (next == qTail) {
+    // The claim, fill and publish run with interrupts off: several fibers
+    // can enqueue at once, and a producer must never be preempted between
+    // filling a slot and publishing it.
+    unsigned gen = queueGeneration;
+    while (true) {
+        target_disable_irq();
+        bool stale = (queueGeneration != gen);
+        int next = (qHead + 1) % PUVOICE_QUEUE_DEPTH;
+        bool full = (next == qTail);
+        if (!stale && !full) {
+            Utterance &u = utteranceQueue[qHead];
+            u.mode = mode;
+            strncpy(u.text, text, PUVOICE_MAX_TEXT);
+            u.text[PUVOICE_MAX_TEXT] = 0;
+            qHead = next;
+        }
+        target_enable_irq();
+        if (stale)
+            return false;
+        if (!full)
+            return true;
         fiber_sleep(10);
-        next = (qHead + 1) % PUVOICE_QUEUE_DEPTH;
     }
-    Utterance &u = utteranceQueue[qHead];
-    u.mode = mode;
-    strncpy(u.text, text, PUVOICE_MAX_TEXT);
-    u.text[PUVOICE_MAX_TEXT] = 0;
-    qHead = next;
-    return true;
 }
 
 int queuedUtterances() {
+    target_disable_irq();
     int n = qHead - qTail;
+    target_enable_irq();
     return n < 0 ? n + PUVOICE_QUEUE_DEPTH : n;
 }
 
 void clearQueue() {
+    target_disable_irq();
     qHead = qTail = 0;
+    queueGeneration++;
+    target_enable_irq();
 }
 
 bool voiceBusy() {
@@ -269,9 +303,17 @@ bool PuVoice::speakNow(const char *text, int mode) {
             return false;
         input[length] = '[';
         input[length + 1] = 0;
-        if (TextToPhonemes((unsigned char *)input) == 0)
+        while (!reciterTryLock())
+            fiber_sleep(5);
+        int ok = TextToPhonemes((unsigned char *)input);
+        reciterUnlock();
+        if (ok == 0)
             return false;
     }
+
+    // The reciter leaves no NUL terminator and the buffer is space-padded,
+    // so bound SetInput's strlen before it can run off the end.
+    input[255] = 0;
 
     int singing = (mode == PUVOICE_MODE_SING || mode == PUVOICE_MODE_SING_PHONEMES);
     SetSingmode(singing ? 1 : 0);
@@ -334,18 +376,28 @@ void PuVoice::finishUtterance() {
 
 static void voiceWorker(void *) {
     while (true) {
-        if (qHead == qTail) {
+        // Dequeue and mark the engine busy in one critical section: the slot
+        // must be fully written before it is visible, and isSpeaking must
+        // not flicker false between dequeue and render.
+        Utterance u;
+        target_disable_irq();
+        bool empty = (qHead == qTail);
+        if (!empty) {
+            u = utteranceQueue[qTail];
+            qTail = (qTail + 1) % PUVOICE_QUEUE_DEPTH;
+            voice.beginUtterance();
+        }
+        target_enable_irq();
+        if (empty) {
             fiber_sleep(10);
             continue;
         }
 
-        Utterance u = utteranceQueue[qTail];
-        qTail = (qTail + 1) % PUVOICE_QUEUE_DEPTH;
-
-        voice.beginUtterance();
-        bool ok = voice.speakNow(u.text, u.mode);
-
-        if (!ok) {
+        if (u.mode == PUVOICE_MODE_POWERDOWN) {
+            // Queued via the powerDownAudio block - serialized here so the
+            // pipeline can never be slept underneath an active render.
+            voice.powerDown();
+        } else if (!voice.speakNow(u.text, u.mode)) {
             MicroBitEvent evt(PUVOICE_EVENT_ID, PUVOICE_EVT_ERROR);
         }
 
@@ -364,10 +416,12 @@ static void voiceWorker(void *) {
 }
 
 void ensureWorker() {
-    if (!workerStarted) {
-        workerStarted = true;
+    target_disable_irq();
+    bool start = !workerStarted;
+    workerStarted = true;
+    target_enable_irq();
+    if (start)
         create_fiber(voiceWorker, NULL);
-    }
 }
 
 // ---------------------------------------------------------------------------

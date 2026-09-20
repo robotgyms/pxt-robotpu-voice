@@ -113,6 +113,7 @@ static void streamFlush(int length) {
 
 namespace puvoice {
     int debug = 0;
+    volatile bool renderAborted = false;
     // when non-null, samples are also captured raw for analysis
     static uint8_t *capture = NULL;
     void SamOutputByte(unsigned int pos, unsigned char value) {

@@ -43,6 +43,7 @@ namespace puvoice {
 #define PUVOICE_MODE_SING       2   // English text -> reciter -> SAM sing mode
 #define PUVOICE_MODE_SING_PHONEMES 3 // raw phonemes + '#nnn' pitch markers, sing mode
 #define PUVOICE_MODE_SILENCE    4   // timed rest; text holds the duration in ms
+#define PUVOICE_MODE_POWERDOWN  5   // queued command: sleep the audio pipeline in order
 
 /*
  * Message bus event source/value emitted by this extension.
@@ -55,10 +56,14 @@ namespace puvoice {
 
 #define PUVOICE_SAMPLE_RATE     22050
 #define PUVOICE_WINDOW_SIZE     4096
-#define PUVOICE_QUEUE_DEPTH     32  // a full song is ~27 queued utterances
+#define PUVOICE_QUEUE_DEPTH     4   // 3 usable slots; a full queue blocks the producer
 #define PUVOICE_MAX_TEXT        90  // reciter output saturates around 120 phonemes
 
 #define PUVOICE_SILENCE         128 // mid-rail value for 8-bit unsigned samples
+
+// Set when a render should bail out early (stop speaking). Checked by the
+// SAM render loop so a cancel takes effect mid-utterance.
+extern volatile bool renderAborted;
 
 class PuVoice {
     MemorySource *sampleSource;
@@ -89,14 +94,14 @@ public:
     void ensureStarted();
     void setVoice(int speed, int pitch, int mouth, int throat);
     void setSingTempo(int tempoPercent) { singTempo = tempoPercent; }
-    void beginUtterance() { speaking = true; cancelled = false; }
+    void beginUtterance() { speaking = true; cancelled = false; renderAborted = false; }
     bool speakNow(const char *text, int mode);
     void outputByte(unsigned int pos, unsigned char value);
     void finishUtterance();
     void powerDown();
 
     bool isSpeaking() { return speaking; }
-    void requestCancel() { cancelled = true; }
+    void requestCancel() { cancelled = true; renderAborted = true; }
 };
 
 // Expand digits in English text into words the reciter can pronounce
@@ -111,6 +116,12 @@ int sanitizePhonemes(char *dst, const char *src, int dstLen);
 
 // The single voice engine instance (defined in voice.cpp).
 extern PuVoice voice;
+
+// The 1982 reciter keeps its working state in file-static globals, so only
+// one fiber may run TextToPhonemes at a time. toPhonemes uses try-lock;
+// the worker spins until it can recite.
+bool reciterTryLock();
+void reciterUnlock();
 
 // Utterance queue drained by the background worker fiber.
 bool enqueueUtterance(int mode, const char *text);

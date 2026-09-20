@@ -136,7 +136,10 @@ void setAudioPinEnabledShim(bool on) {
  */
 //%
 void powerDownShim() {
-    voice.powerDown();
+    // Queue it rather than sleeping the pipeline directly: called from a
+    // user fiber it could race a render in progress on the worker and wedge
+    // MemorySource::play() against a powered-down mixer.
+    enqueueUtterance(PUVOICE_MODE_POWERDOWN, "");
 }
 
 /**
@@ -146,16 +149,20 @@ void powerDownShim() {
  */
 //%
 String toPhonemesShim(String text) {
-    if (voiceBusy())
+    // The voiceBusy() check keeps the common case fast; the lock closes the
+    // race where speech starts between the check and the reciter run.
+    if (voiceBusy() || !reciterTryLock())
         return mkString("", 0);
 
     char input[256];
     int length = expandDigits(input, text->getUTF8Data(), 253);
+    if (length >= 0) {
+        input[length] = '[';
+        input[length + 1] = 0;
+        length = TextToPhonemes((unsigned char *)input) ? length : -1;
+    }
+    reciterUnlock();
     if (length < 0)
-        return mkString("", 0);
-    input[length] = '[';
-    input[length + 1] = 0;
-    if (TextToPhonemes((unsigned char *)input) == 0)
         return mkString("", 0);
 
     // reciter output ends with the 0x9b marker; cut the string there

@@ -56,6 +56,10 @@ unsigned char freq3data[]=
 
 extern void SamOutputByte(unsigned int index, unsigned char v);
 
+// Set by PuVoice::requestCancel() so "stop speaking" bails out of a render
+// in progress instead of running every frame to completion.
+extern volatile bool renderAborted;
+
 extern int debug;
 
 unsigned char wait1 = 7;
@@ -105,7 +109,7 @@ extern char *buffer;
 
 
 //timetable for more accurate c64 simulation
-int timetable[5][5] =
+const int timetable[5][5] =
 {
     {162, 167, 167, 127, 128},
     {226, 60, 60, 0, 0},
@@ -436,6 +440,10 @@ void Render()
 // pos47587:
 do
 {
+    if (renderAborted) return;
+    // output chunks are always terminated within 60 entries, but stop the
+    // scan anyway rather than reading past the array
+    if (mem44 >= 60) break;
     // get the index
     Y = mem44;
     // get the phoneme at the index
