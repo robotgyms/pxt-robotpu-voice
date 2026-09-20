@@ -121,81 +121,86 @@ packets — so if a handler takes 30 seconds to sing a song, **no voice
 commands work for 30 seconds**. The robot looks like it stopped listening!
 
 Quick actions like ``robotPuPro.start`` are fine — they return instantly.
-Long shows (songs, speeches, dances) must run in the background instead.
+Long shows (songs, speeches, dances) must run in the background instead:
+wrap them in ``||control:in background||`` inside the handler.
 
-## Step 6: A flag for long shows
+## Step 6: Let the song run in the background
 
-The trick: the handler only **sets a flag**, and a background loop does
-the actual singing.
+The trick: the handler doesn't sing itself — it only **starts** a
+``||control:in background||`` task that sings, then returns instantly.
 
 ```blocks
-let singRequested = false
 robotPuCap.onVoiceAction(robotPuCap.VoiceAction.Sing, function () {
-    singRequested = true
+    control.inBackground(function () {
+        robotpuVoice.setVoice(VoicePreset.RobotPU)
+        robotpuVoice.say("Happy birthday to Robot P U!")
+        robotpuVoice.singRest(4)
+        robotpuVoice.singNote(SingNote.G4, "/HAE", 1)
+        robotpuVoice.singNote(SingNote.G4, "PIY", 1)
+        robotpuVoice.singNote(SingNote.A4, "BERTH", 4)
+        robotpuVoice.singNote(SingNote.G4, "DEY", 4)
+        robotpuVoice.singNote(SingNote.C5, "TUW", 4)
+        robotpuVoice.singNote(SingNote.B4, "YUW", 8)
+    })
 })
 ```
 
-The handler finishes in a microsecond — the poll loop never stops.
-
-## Step 7: The background singer
-
-Now a ``||control:in background||`` loop watches the flag and performs
-the song:
-
-```blocks
-control.inBackground(function () {
-    while (true) {
-        if (singRequested) {
-            singRequested = false
-            robotpuVoice.setVoice(VoicePreset.RobotPU)
-            robotpuVoice.say("Happy birthday to Robot P U!")
-            robotpuVoice.singRest(4)
-            robotpuVoice.singNote(SingNote.G4, "/HAE", 1)
-            robotpuVoice.singNote(SingNote.G4, "PIY", 1)
-            robotpuVoice.singNote(SingNote.A4, "BERTH", 4)
-            robotpuVoice.singNote(SingNote.G4, "DEY", 4)
-            robotpuVoice.singNote(SingNote.C5, "TUW", 4)
-            robotpuVoice.singNote(SingNote.B4, "YUW", 8)
-        }
-        basic.pause(50)
-    }
-})
-```
+The handler finishes in a microsecond — the poll loop never stops —
+while the background task feeds notes into the voice queue at song pace.
 
 Say ``sing`` and Robot PU performs — while the micro:bit **keeps
 listening** for the next command.
 
+## Step 7: One show at a time
+
+Say ``sing`` twice quickly and two background singers would take turns
+feeding the queue — a garbled duet. A flag keeps it to one show at a
+time:
+
+```blocks
+let showBusy = false
+robotPuCap.onVoiceAction(robotPuCap.VoiceAction.Sing, function () {
+    if (!showBusy) {
+        showBusy = true
+        control.inBackground(function () {
+            // ... the song blocks from Step 6 go here ...
+            showBusy = false
+        })
+    }
+})
+```
+
+The flag clears when the last note has been handed to the queue — about
+when the show ends — so an extra ``sing`` during the show is ignored.
+
 **Tip — stopping mid-song:** ``||robotpuVoice:stop speaking||`` clears the
-queue and cuts the current note, but a background loop like this one will
-happily feed it the *next* note. To let ``stop`` really end the show,
-check ``||robotpuVoice:is speaking||`` between notes in a long sequence —
-it goes ``false`` once ``stop speaking`` has taken effect.
+queue and cuts the current note, but a background task will happily feed
+it the *next* note. To let ``stop`` really end the show, check
+``||robotpuVoice:is speaking||`` between notes in a long sequence — it
+goes ``false`` once ``stop speaking`` has taken effect.
 
 ## Step 8: A talking show, the same way
 
 The ``talk`` command does a whole stage show — announcement, poem, sung
-scales. Same flag pattern:
+scales. Same pattern, sharing the ``showBusy`` flag so a show never
+interrupts a song:
 
 ```blocks
-let talkRequested = false
 robotPuCap.onVoiceAction(robotPuCap.VoiceAction.Talk, function () {
-    talkRequested = true
+    if (!showBusy) {
+        showBusy = true
+        control.inBackground(function () {
+            robotpuVoice.say("Ladies and gentlemen, boys and girls!")
+            robotpuVoice.say("Welcome to the Planet Sakukar!")
+            robotpuVoice.rest(600)
+            robotpuVoice.say("I am robot P U, small but proud.")
+            robotpuVoice.say("My voice is squeaky. My beeps are loud.")
+            robotpuVoice.say("I walk and I talk and I sing you a song.")
+            robotpuVoice.say("With my micro-bit brain, I cannot go wrong!")
+            showBusy = false
+        })
+    }
 })
-```
-
-Then inside the same background loop, add a ``talkRequested`` section:
-
-```blocks
-if (talkRequested) {
-    talkRequested = false
-    robotpuVoice.say("Ladies and gentlemen, boys and girls!")
-    robotpuVoice.say("Welcome to the Planet Sakukar!")
-    robotpuVoice.rest(600)
-    robotpuVoice.say("I am robot P U, small but proud.")
-    robotpuVoice.say("My voice is squeaky. My beeps are loud.")
-    robotpuVoice.say("I walk and I talk and I sing you a song.")
-    robotpuVoice.say("With my micro-bit brain, I cannot go wrong!")
-}
 ```
 
 ## Step 9: Dress rehearsal — voice and servos
@@ -260,8 +265,8 @@ robotPuCap.onVoiceAction(robotPuCap.VoiceAction.Wakeup, function () {
   extension isn't imported yet — see "Before you start".
 - **Nothing happens:** did you wake it first? A loud clap or shout opens
   the command window for a few seconds.
-- **Works once, then stops:** a handler is blocking the poll loop — move
-  the long part into a background flag like Step 6.
+- **Works once, then stops:** a handler is blocking the poll loop — wrap
+  the long part in ``control.inBackground`` like Step 6.
 - **Wrong action:** check the VoiceAction name in your handler matches the
   word you said.
 
@@ -281,8 +286,7 @@ robotPuPro.setServoTrim(5, 0)
 robotPuPro.saveServoTrimCalibration()
 robotPuCap.startCogniCap()
 robotPuCap.enableVoiceCommands(true)
-let singRequested = false
-let talkRequested = false
+let showBusy = false
 function singHappyBirthday() {
     robotpuVoice.say("Happy birthday to Robot P U!")
     robotpuVoice.singRest(4)
@@ -357,6 +361,7 @@ robotPuCap.onVoiceAction(robotPuCap.VoiceAction.Go, function () {
 })
 robotPuCap.onVoiceAction(robotPuCap.VoiceAction.Stop, function () {
     robotPuPro.start(robotPuPro.Action.Rest, 0)
+    robotpuVoice.stopSpeaking()
 })
 robotPuCap.onVoiceAction(robotPuCap.VoiceAction.TurnLeft, function () {
     robotPuPro.start(robotPuPro.Action.TurnLeft, 0)
@@ -383,27 +388,21 @@ robotPuCap.onVoiceAction(robotPuCap.VoiceAction.Cry, function () {
     robotPuPro.start(robotPuPro.Action.Cry, 0)
 })
 robotPuCap.onVoiceAction(robotPuCap.VoiceAction.Sing, function () {
-    singRequested = true
+    if (!showBusy) {
+        showBusy = true
+        control.inBackground(function () {
+            singHappyBirthday()
+            showBusy = false
+        })
+    }
 })
 robotPuCap.onVoiceAction(robotPuCap.VoiceAction.Talk, function () {
-    talkRequested = true
-})
-
-robotPuCap.onVoiceAction(robotPuCap.VoiceAction.Wakeup, function () {
-    robotPuPro.start(robotPuPro.Action.Stand, 0)
-})
-
-control.inBackground(function () {
-    while (true) {
-        if (singRequested) {
-            singRequested = false
-            singHappyBirthday()
-        }
-        if (talkRequested) {
-            talkRequested = false
+    if (!showBusy) {
+        showBusy = true
+        control.inBackground(function () {
             selfIntroduction()
-        }
-        basic.pause(50)
+            showBusy = false
+        })
     }
 })
 ```
