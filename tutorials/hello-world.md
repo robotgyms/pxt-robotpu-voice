@@ -7,6 +7,8 @@ notes, timed rests, and custom voice personalities.
 By the end, you'll know every tool you need for fun projects: talking
 alarms, singing robots, radio-controlled announcers, and more.
 
+Demo Video: https://youtube.com/shorts/lvVF9ypYzPM
+
 You will need a **micro:bit V2** — the extension needs its audio
 hardware. On Robot PU, the voice comes out of the robot's speaker
 through pin 0.

@@ -2,6 +2,9 @@
 
 Make Robot PU say and sing Happy Birthday — the perfect way to impress your friends.
 
+Demo Video: https://youtube.com/shorts/sS_rEhxK5sg
+
+
 ## Step 1: Robot PU says hello
 
 Every good performance starts with an announcement. Let's make Robot PU

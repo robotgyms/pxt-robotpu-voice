@@ -1,6 +1,7 @@
 # Robot PU Voice
 
-Text-to-speech for **Robot PU** (and any BBC micro:bit **V2**) based on
+Text-to-speech for **[Robot PU](https://robotgyms.com/pu)** (and any BBC
+micro:bit **V2**) based on
 [SAM](https://github.com/s-macke/SAM) — *Software Automatic Mouth*, the
 legendary speech synthesizer from the Commodore C64 (1982).
 
@@ -26,6 +27,10 @@ with a different architecture, built for robot hardware:
 
 micro:bit **V2 only** (the CODAL audio pipeline is required; V1 is
 explicitly unsupported).
+
+See it in action: 
+- Self Introduction: https://youtube.com/shorts/lvVF9ypYzPM
+- Happy Birthdayhttps://youtube.com/shorts/sS_rEhxK5sg
 
 ## Add to a MakeCode project
 

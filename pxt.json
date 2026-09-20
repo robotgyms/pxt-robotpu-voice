@@ -23,7 +23,10 @@
         "sam/reciter.cpp",
         "sam/SamTabs.h",
         "sam/ReciterTabs.h",
-        "sam/RenderTabs.h"
+        "sam/RenderTabs.h",
+        "_locales/pxt-robotpu-voice-strings.json",
+        "_locales/zh-CN/pxt-robotpu-voice-strings.json",
+        "_locales/zh-TW/pxt-robotpu-voice-strings.json"
     ],
     "testFiles": [
         "test.ts"
