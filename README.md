@@ -8,7 +8,8 @@ micro:bit **V2**) built on a **rewritten, hardened port** of
 legendary speech synthesizer from the Commodore C64 (1982).
 
 <p align="center">
-  <img src="assets/pu_voice.jpeg" alt="Robot PU singing into a microphone" width="480">
+  <a href="https://www.amazon.com/Robot-Programmable-Interactive-Upgradable-Self-Balancing/dp/B0DR8RGVXN"><img src="assets/pu_voice.jpeg" alt="Robot PU singing into a microphone" width="480"></a><br>
+  <i>Runs on any micro:bit V2 — sings loudest on <a href="https://www.amazon.com/Robot-Programmable-Interactive-Upgradable-Self-Balancing/dp/B0DR8RGVXN">Robot PU</a>.</i>
 </p>
 
 This is not the stock engine: the bundled SAM carries fixes for
@@ -45,25 +46,28 @@ with a different architecture, built for robot hardware:
 micro:bit **V2 only** (the CODAL audio pipeline is required; V1 is
 explicitly unsupported).
 
-See it in action:
-- Self Introduction: https://youtube.com/shorts/lvVF9ypYzPM
-- Happy Birthday: https://youtube.com/shorts/sS_rEhxK5sg
-
 ## About Robot PU
 
 [Robot PU](https://robotgyms.com/pu) is a playful, programmable robot
 built on the micro:bit. It walks, dances, kicks, and balances on its
-IMU — and its built-in sound amplifier and speaker on pin 0 are exactly
-what this extension is tuned for: the SAM voice comes out loud and
-clear instead of whisper-quiet through the micro:bit's tiny on-board
-speaker.
+IMU — and with its built-in amplifier and speaker on pin 0, the SAM
+voice comes out loud and clear instead of whisper-quiet through the
+micro:bit's tiny on-board speaker.
 
-* **Buy it**: [Robot PU kit on Amazon](https://www.amazon.com/Robot-Programmable-Interactive-Upgradable-Self-Balancing/dp/B0DR8RGVXN)
-* **Motion extension**: [pxt-robotpu](https://github.com/robotgyms/pxt-robotpu) —
-  the moves in the dance/performance tutorials come from there
-* **Learn more**: [The Story of PU](https://www.youtube.com/@TheStoryofPu-yw8tr)
+Hear it live:
+
+- [Robot PU introduces itself](https://youtube.com/shorts/lvVF9ypYzPM)
+- [Robot PU sings Happy Birthday](https://youtube.com/shorts/sS_rEhxK5sg)
+
+**[Get the Robot PU kit on Amazon →](https://www.amazon.com/Robot-Programmable-Interactive-Upgradable-Self-Balancing/dp/B0DR8RGVXN)** —
+then add the [pxt-robotpu](https://github.com/robotgyms/pxt-robotpu)
+motion extension so it can move while it sings. More at
+[The Story of PU](https://www.youtube.com/@TheStoryofPu-yw8tr).
 
 ## Add to a MakeCode project
+
+You need a micro:bit **V2** — and for the full voice, a
+[Robot PU kit](https://www.amazon.com/Robot-Programmable-Interactive-Upgradable-Self-Balancing/dp/B0DR8RGVXN).
 
 * Open https://makecode.microbit.org
 * Click on **New Project**
