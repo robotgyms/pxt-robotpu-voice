@@ -240,7 +240,11 @@ void PuVoice::streamFlush(int length) {
     if (length <= 0 || cancelled)
         return;
     // play() blocks this fiber until the whole buffer has been consumed by the
-    // mixer, which naturally paces the renderer at the audio rate.
+    // mixer, which naturally paces the renderer at the audio rate. If the
+    // pipeline was slept (powerDown) or deactivated elsewhere, nothing pulls
+    // and play() would wait forever — make sure the mixer is awake first.
+    uBit.audio.setSleep(false);
+    uBit.audio.requestActivation();
     sampleSource->play(window, length);
     windowBase += PUVOICE_WINDOW_SIZE;
     windowFill = 0;
@@ -281,6 +285,8 @@ bool PuVoice::speakNow(const char *text, int mode) {
         while (remaining > 0 && !cancelled) {
             int chunk = remaining > PUVOICE_WINDOW_SIZE ? PUVOICE_WINDOW_SIZE : (int)remaining;
             memset(window, PUVOICE_SILENCE, chunk);
+            uBit.audio.setSleep(false);
+            uBit.audio.requestActivation();
             sampleSource->play(window, chunk);
             remaining -= chunk;
         }
@@ -337,8 +343,11 @@ bool PuVoice::speakNow(const char *text, int mode) {
         return false;
 
     // flush the partial tail of the last window
-    if (windowFill > 0 && !cancelled)
+    if (windowFill > 0 && !cancelled) {
+        uBit.audio.setSleep(false);
+        uBit.audio.requestActivation();
         sampleSource->play(window, windowFill);
+    }
     windowFill = 0;
     return true;
 }
@@ -397,8 +406,9 @@ static void voiceWorker(void *) {
             // Queued via the powerDownAudio block - serialized here so the
             // pipeline can never be slept underneath an active render.
             voice.powerDown();
-        } else if (!voice.speakNow(u.text, u.mode)) {
-            MicroBitEvent evt(PUVOICE_EVENT_ID, PUVOICE_EVT_ERROR);
+        } else {
+            if (!voice.speakNow(u.text, u.mode))
+                MicroBitEvent evt(PUVOICE_EVENT_ID, PUVOICE_EVT_ERROR);
         }
 
         // When the queue has fully drained, wait for the last samples to play
