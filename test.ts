@@ -14,13 +14,15 @@
  *  6: Sing mode chants "daisy daisy" on a flat pitch.
  *  7: Pitch-marked phonemes sing the Do-Re-Mi scale, each note rising.
  *  8: Four singNote calls: doe - mee - soh - doe (C4 E4 G4 C5).
- *  9: "first sentence", "second sentence" play; the third queued
- *     utterance is cleared by stop speaking and never heard.
+ *  9: "first sentence" plays to the end; the two utterances queued
+ *     behind it are cleared by stop speaking - "second sentence" may be
+ *     cut short if the worker already started rendering it.
  * 10: Prints "RAA1BAAT" (or similar phoneme spelling) over serial.
  * 11: "wait for it", exactly 1 second of silence, then "done waiting" -
  *     the rest stays queued in sequence with the speech.
- * 12: doe - rest - soh using singRest: the silence is measured in beats,
- *     so it scales with the sung notes (singNote(SingNote.Rest) works too).
+ * 12: doe - rest - soh - rest - doe: beat rests via singRest and via
+ *     singNote(SingNote.Rest) - the silence is measured in beats, so it
+ *     scales with the sung notes.
  * 13: Do-Re-Mi sung twice - first at normal tempo, then at 200% (twice
  *     as fast). Talking speed is unaffected by the singing tempo.
  * 14: Playable API (music.play style): doe for one beat, a half-beat
@@ -93,9 +95,10 @@ input.onButtonPressed(Button.A, function () {
             robotpuVoice.singNote(SingNote.C5, "DOW", 10)
             break
         case 9:
-            // expect: "first sentence" then "second sentence"; the third
-            // utterance is dropped from the queue by stop speaking
-            robotpuVoice.say("first sentence")
+            // expect: "first sentence" plays fully; the utterances queued
+            // behind it are dropped by stop speaking - if the worker
+            // already dequeued "second sentence" it is cut short instead
+            robotpuVoice.sayAndWait("first sentence")
             robotpuVoice.say("second sentence")
             robotpuVoice.say("this one is stopped")
             robotpuVoice.stopSpeaking()
@@ -112,11 +115,14 @@ input.onButtonPressed(Button.A, function () {
             robotpuVoice.say("done waiting")
             break
         case 12:
-            // expect: "doe", a one-beat silence, then "soh" held long -
-            // the rest lasts about as long as a hold-4 sung note
+            // expect: "doe", a one-beat silence, "soh", a rest via the
+            // note dropdown (SingNote.Rest), then "doe" held long -
+            // the beat rests last about as long as a hold-4 sung note
             robotpuVoice.singNote(SingNote.C4, "DOW", 4)
             robotpuVoice.singRest(4)
-            robotpuVoice.singNote(SingNote.G4, "SOH", 8)
+            robotpuVoice.singNote(SingNote.G4, "SOH", 4)
+            robotpuVoice.singNote(SingNote.Rest, "", 4)
+            robotpuVoice.singNote(SingNote.C5, "DOW", 8)
             break
         case 13:
             // expect: Do-Re-Mi at normal speed, then again twice as fast

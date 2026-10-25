@@ -167,7 +167,8 @@ One catch: ``phonemes for`` returns an empty string while speech is
 playing (the converter shares the voice engine), so check
 ``||robotpuVoice:is speaking||`` or wait for quiet first.
 
-The full phoneme table is in the extension's README.
+The full phoneme table is in the original SAM manual — the extension's
+README links to it.
 
 ## Step 9: Make it sing
 
