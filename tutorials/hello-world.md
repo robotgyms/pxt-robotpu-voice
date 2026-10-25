@@ -125,8 +125,8 @@ no one has heard before.
 
 English spelling confuses computers ("though" vs "through"!), so the
 engine really speaks **phonemes** — sound atoms like ``AY`` (the "i" in
-"ice") or ``TCH``. The ``||robotpuVoice:pronounce phonemes||`` block
-takes them raw:
+"ice") or ``CH`` (the "ch" in "church"). The
+``||robotpuVoice:pronounce phonemes||`` block takes them raw:
 
 ```blocks
 robotpuVoice.pronounce("/HAA4LOW WERLD")

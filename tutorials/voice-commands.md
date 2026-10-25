@@ -9,7 +9,7 @@ sound, hears your command, and tells the micro:bit which action to run.
    CogniCap's ears.
 2. You say a **command word** like ``walk`` or ``dance`` within a few seconds.
 3. CogniCap sends an **action code** to the micro:bit over I2C.
-4. Your ``||robotPuCap:on voice action||`` handler runs the matching action.
+4. Your ``||robotPuCap:on voice command||`` handler runs the matching action.
 
 ## Before you start: add the extension
 
@@ -115,14 +115,17 @@ Each word triggers its own action code.
 
 Here is the most important trick in this tutorial.
 
-``||robotPuCap:on voice action||`` handlers run **inside** the I2C polling
-loop. While your handler is running, the micro:bit cannot read any new
-packets — so if a handler takes 30 seconds to sing a song, **no voice
-commands work for 30 seconds**. The robot looks like it stopped listening!
+``||robotPuCap:on voice command||`` handlers run on the **event-dispatch
+fiber** — the I2C polling keeps running while a handler executes, but
+only one handler runs at a time. A handler that takes 30 seconds to sing
+a song makes every command that arrives in those 30 seconds wait behind
+it; the event queue only holds a few, so **newer commands get dropped**.
+The robot looks like it stopped listening!
 
 Quick actions like ``robotPuPro.start`` are fine — they return instantly.
 Long shows (songs, speeches, dances) must run in the background instead:
-wrap them in ``||control:in background||`` inside the handler.
+wrap them in ``||control:in background||`` inside the handler so the
+dispatch fiber stays free for the next command.
 
 ## Step 6: Let the song run in the background
 
@@ -145,8 +148,9 @@ robotPuCap.onVoiceAction(robotPuCap.VoiceAction.Sing, function () {
 })
 ```
 
-The handler finishes in a microsecond — the poll loop never stops —
-while the background task feeds notes into the voice queue at song pace.
+The handler finishes in a microsecond — the dispatch fiber moves on to
+the next command — while the background task feeds notes into the voice
+queue at song pace.
 
 Say ``sing`` and Robot PU performs — while the micro:bit **keeps
 listening** for the next command.
@@ -212,12 +216,12 @@ stage program:
 robotpuVoice.configureVoice(180, 68, 180, 180)
 robotpuVoice.setVolume(255)
 robotpuVoice.say("Hello everyone here! I am robot P U.")
-robotPuPro.setServoTrim(0, -4)
-robotPuPro.setServoTrim(1, 0)
-robotPuPro.setServoTrim(2, 10)
-robotPuPro.setServoTrim(3, 0)
-robotPuPro.setServoTrim(4, 0)
-robotPuPro.setServoTrim(5, 0)
+robotPuPro.setServoTrim(robotPuPro.ServoJoint.LeftFoot, -4)
+robotPuPro.setServoTrim(robotPuPro.ServoJoint.LeftLeg, 0)
+robotPuPro.setServoTrim(robotPuPro.ServoJoint.RightFoot, 10)
+robotPuPro.setServoTrim(robotPuPro.ServoJoint.RightLeg, 0)
+robotPuPro.setServoTrim(robotPuPro.ServoJoint.HeadYaw, 0)
+robotPuPro.setServoTrim(robotPuPro.ServoJoint.HeadPitch, 0)
 robotPuPro.saveServoTrimCalibration()
 ```
 
@@ -244,9 +248,10 @@ handler:
 | right | 11 | drive | 27 |
 | straight | 12 | calibrate | 28 |
 | wake up | 13 | duck | 29 |
-| walk | 14 | | |
-| walk backward | 15 | | |
-| turn left | 16 | | |
+| walk | 14 | attention | 30 |
+| walk backward | 15 | record | 32 |
+| turn left | 16 | video | 33 |
+| | | photo | 34 |
 
 ## Step 11: Wake up!
 
@@ -265,8 +270,8 @@ robotPuCap.onVoiceAction(robotPuCap.VoiceAction.Wakeup, function () {
   extension isn't imported yet — see "Before you start".
 - **Nothing happens:** did you wake it first? A loud clap or shout opens
   the command window for a few seconds.
-- **Works once, then stops:** a handler is blocking the poll loop — wrap
-  the long part in ``control.inBackground`` like Step 6.
+- **Works once, then stops:** a handler is blocking the dispatch fiber —
+  wrap the long part in ``control.inBackground`` like Step 6.
 - **Wrong action:** check the VoiceAction name in your handler matches the
   word you said.
 
@@ -277,12 +282,12 @@ robotPuCap.onVoiceAction(robotPuCap.VoiceAction.Wakeup, function () {
 robotpuVoice.setVoice(VoicePreset.RobotPU)
 robotpuVoice.setVolume(255)
 robotpuVoice.say("Hello everyone here! I am robot P U.")
-robotPuPro.setServoTrim(0, -4)
-robotPuPro.setServoTrim(1, 0)
-robotPuPro.setServoTrim(2, 10)
-robotPuPro.setServoTrim(3, 0)
-robotPuPro.setServoTrim(4, 0)
-robotPuPro.setServoTrim(5, 0)
+robotPuPro.setServoTrim(robotPuPro.ServoJoint.LeftFoot, -4)
+robotPuPro.setServoTrim(robotPuPro.ServoJoint.LeftLeg, 0)
+robotPuPro.setServoTrim(robotPuPro.ServoJoint.RightFoot, 10)
+robotPuPro.setServoTrim(robotPuPro.ServoJoint.RightLeg, 0)
+robotPuPro.setServoTrim(robotPuPro.ServoJoint.HeadYaw, 0)
+robotPuPro.setServoTrim(robotPuPro.ServoJoint.HeadPitch, 0)
 robotPuPro.saveServoTrimCalibration()
 robotPuCap.startCogniCap()
 robotPuCap.enableVoiceCommands(true)

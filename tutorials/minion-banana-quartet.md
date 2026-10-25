@@ -46,11 +46,15 @@ repeating the last letters of a syllable stretches the note.
 So ``#57BAAAAAA #57NAAAAAAAAAA`` sings "baaa-naaaaa" on C5 — a short note
 then a long one.
 
-**Why whole phrases?** The voice queue only has room for a few blocks
-at a time — a ``sing note`` for every single note would run out of room
-mid song. Packing a phrase into one ``sing phonemes`` block keeps every
-note in perfect step, and ``||robotpuVoice:wait until speech finished||``
-gives the robot a breath every few phrases so the queue never overflows.
+**Why whole phrases?** The voice queue holds a few items at a time —
+once it is full, the next block **waits for room** instead of dropping
+the note. That pause lands on whatever fiber is queueing — here the
+radio-received handler itself — so a ``sing note`` for every single note
+would stall the receiver mid song. Packing a phrase into one
+``sing phonemes`` block keeps every note in perfect step (the whole
+phrase renders as one gapless utterance), and
+``||robotpuVoice:wait until speech finished||`` gives the robot a breath
+every few phrases so the queue always has room.
 
 And when a part joins late — or sits out a section — a rest queues real
 silence inside the song, exactly like a rest in sheet music. Two forms:
