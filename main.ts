@@ -102,7 +102,8 @@ enum SingNote {
     B5 = 30,
     /**
      * A musical rest - silence measured in "hold" units instead of
-     * milliseconds, so it stretches the same way the sung notes do.
+     * milliseconds, matching a note of the same hold at the voice's own
+     * pace (rests keep their length when the singing tempo changes).
      */
     //% block="rest"
     Rest = 0
@@ -226,8 +227,9 @@ namespace robotpuVoice {
     }
 
     /**
-     * Rest for a number of beats, measured in "hold" units so it stretches
-     * the same way the sung notes do - no millisecond maths needed.
+     * Rest for a number of beats, measured in "hold" units so it lines up
+     * with notes sung at the voice's own pace - no millisecond maths
+     * needed. Rests keep their length when the singing tempo changes.
      * @param hold how many beats to stay quiet, eg: 4
      */
     //% blockId=robotpuvoice_sing_rest block="rest %hold beats"
@@ -568,8 +570,8 @@ namespace robotpuVoice {
     /**
      * Set the singing tempo as a percent of the voice's normal speed.
      * 100 sings at the preset's own pace, 200 is twice as fast, 50 is
-     * half speed. Talking speed is not affected. Set to 0 to sing at the
-     * voice's own speed again.
+     * half speed. Talking speed and timed rests are not affected. Set to
+     * 0 to sing at the voice's own speed again.
      * @param tempo percent of normal singing speed, eg: 100
      */
     //% blockId=robotpuvoice_sing_tempo block="set singing tempo %tempo \\%"

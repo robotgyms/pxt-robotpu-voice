@@ -163,8 +163,9 @@ robotpuVoice.singNote(SingNote.B4, "YUW", 8)
 Rests are queued just like notes — each plays in sequence with the speech
 around it — and there is one for every timing style:
 
-* `rest … beats` (`singRest`) — silence measured in `hold` units, so it
-  stretches the same way the sung notes do:
+* `rest … beats` (`singRest`) — silence measured in `hold` units, so a
+  rest matches a note of the same hold at the voice's own pace (rests
+  keep their length when `set singing tempo` changes the speed):
 
   ```blocks
   robotpuVoice.singNote(SingNote.C4, "DOW", 4)

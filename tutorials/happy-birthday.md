@@ -119,14 +119,18 @@ first, then sing. A ``||robotpuVoice:rest beats||`` block in between is a
 one-beat breath — the singer collects itself before the song.
 
 The ``sing note`` blocks are queued: the singer performs them in the
-background, so the button block finishes long before the last note.
-``||robotpuVoice:wait until speech finished||`` keeps the handler alive
-until the final ``C5`` rings out — handy so pressing the button again
-can't start a second song on top of the first. A happy face when it
+background, so the button block finishes long before the last note. The
+``||robotpuVoice:is speaking||`` wait keeps a second press from piling a
+whole second song onto the queue — it sits out the first performance
+instead. ``||robotpuVoice:wait until speech finished||`` keeps the
+handler alive until the final ``C5`` rings out, and a happy face when it
 finishes comes from ``||robotpuVoice:on speech finished||``.
 
 ```blocks
 input.onButtonPressed(Button.A, function () {
+    while (robotpuVoice.isSpeaking()) {
+        basic.pause(100)
+    }
     robotpuVoice.setVoice(VoicePreset.LittleRobot)
     robotpuVoice.say("Happy birthday to Robot P U!")
     robotpuVoice.singRest(4)
