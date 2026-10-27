@@ -283,6 +283,9 @@ finished` to take a breath between them.
   same time. No robot required.
 * [Minion Banana Quartet](/tutorials/minion-banana-quartet) — four
   micro:bits sing the Banana song in parts, started in sync over radio.
+* [Speak Chinese](/tutorials/chinese) — say and pronounce Mandarin:
+  你好, 谢谢, 恭喜发财 — with a vowel/consonant cheat sheet and
+  tone-mark tricks.
 
 ## Note to pitch number table
 
