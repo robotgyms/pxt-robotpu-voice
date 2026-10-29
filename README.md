@@ -286,6 +286,8 @@ finished` to take a breath between them.
 * [Speak Chinese](/tutorials/chinese) — say and pronounce Mandarin:
   你好, 谢谢, 恭喜发财 — with a vowel/consonant cheat sheet and
   tone-mark tricks.
+* [Sing a Long Song — "Can You Feel the Love Tonight"](/tutorials/can-you-feel-the-love-tonight) —
+  multi-phrase singing with `#` pitch markers and vowel stretching.
 
 ## Note to pitch number table
 
