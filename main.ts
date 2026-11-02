@@ -613,10 +613,11 @@ namespace robotpuVoice {
 
     /**
      * Route audio to the edge connector pin (pin 0). This is the output that
-     * drives the Robot PU speaker amplifier. The pin is enabled automatically
-     * the first time the voice module runs, and pin 0 goes quiet by itself
-     * whenever speech finishes (the audio pipeline sleeps, stopping PWM) -
-     * so guarding speech with off/on pairs is never needed. Use this only
+     * drives the Robot PU speaker amplifier. The pin is re-enabled
+     * automatically whenever speech runs (other packages like music can
+     * turn it off), and pin 0 goes quiet by itself whenever speech finishes
+     * (the audio pipeline sleeps, stopping PWM) - so guarding speech with
+     * off/on pairs is never needed. Use this only
      * for a deliberate routing change, eg: pin off for speaker-only output.
      * (Same switch as the pins package's "set audio pin enabled".)
      * @param on true to enable audio on pin 0, eg: true

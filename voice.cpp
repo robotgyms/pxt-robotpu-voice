@@ -204,6 +204,7 @@ PuVoice::PuVoice() {
     pitch = 64;
     mouth = 128;
     throat = 128;
+    pinDisabledByUser = false;
     singTempo = 0;
     windowFill = 0;
     windowBase = 0;
@@ -214,12 +215,14 @@ void PuVoice::ensureStarted() {
     // reconnects the speaker / edge connector pin if the pipeline was asleep.
     uBit.audio.setSleep(false);
     uBit.audio.requestActivation();
-    if (!started) {
-        // Enable pin 0 once, at module start. Idle noise on the pin is
-        // handled by powerDown() (setSleep stops the PWM), so user code
-        // never needs to guard speech with outputToPin0(true/false) pairs.
-        // A later explicit outputToPin0(false) is still honored.
+    // Re-assert pin 0 on every activation: other packages (music, core
+    // pins) can disable it, which would mute the amp until reset. Idle
+    // noise is handled by powerDown() (setSleep stops the PWM), so user
+    // code never needs to guard speech with off/on pairs. An explicit
+    // outputToPin0(false) through our API is still honored.
+    if (!pinDisabledByUser)
         uBit.audio.setPinEnabled(true);
+    if (!started) {
         sampleSource = new MemorySource();
         sampleSource = new MemorySource();
         sampleSource->setFormat(DATASTREAM_FORMAT_8BIT_UNSIGNED);

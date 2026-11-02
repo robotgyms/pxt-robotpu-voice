@@ -128,7 +128,7 @@ void setSpeakerEnabledShim(bool on) {
  */
 //%
 void setAudioPinEnabledShim(bool on) {
-    uBit.audio.setPinEnabled(on);
+    voice.setPinEnabled(on);
 }
 
 /**

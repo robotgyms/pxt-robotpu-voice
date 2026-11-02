@@ -83,6 +83,7 @@ class PuVoice {
     int singTempo;                  // percent; 0 = sing at the voice's own speed
 
     bool started;                   // mixer channel created
+    bool pinDisabledByUser;         // outputToPin0(false) was called through our API
     volatile bool speaking;         // an utterance is being rendered/played
     volatile bool cancelled;        // stop() requested
 
@@ -99,6 +100,7 @@ public:
     void outputByte(unsigned int pos, unsigned char value);
     void finishUtterance();
     void powerDown();
+    void setPinEnabled(bool on) { pinDisabledByUser = !on; uBit.audio.setPinEnabled(on); }
 
     bool isSpeaking() { return speaking; }
     void requestCancel() { cancelled = true; renderAborted = true; }
