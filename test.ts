@@ -151,10 +151,11 @@ input.onButtonPressed(Button.A, function () {
             robotpuVoice.say("loud")
             break
         case 16:
-            // expect: "speaker test one" only on the on-board speaker
-            // (pin 0 off), then "speaker test two" only on pin 0 - on a
-            // bare micro:bit the second phrase is silent; on Robot PU it
-            // comes out of the robot speaker. Both outputs end re-enabled.
+            // expect: pin-0-off lasts only until the next utterance - the
+            // say() call re-enables it, so "speaker test one" plays on BOTH
+            // outputs. Then "speaker test two" plays only on pin 0 - on a
+            // bare micro:bit it is silent; on Robot PU it comes out of the
+            // robot speaker. Both outputs end re-enabled.
             robotpuVoice.outputToPin0(false)
             robotpuVoice.say("speaker test one")
             robotpuVoice.waitUntilDone()
