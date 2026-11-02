@@ -250,6 +250,9 @@ robotpuVoice.outputToPin0(true)
 - ``||robotpuVoice:set speech volume||`` — 0–255, affects the whole mixer
 - ``||robotpuVoice:use on-board speaker||`` — the micro:bit's speaker
 - ``||robotpuVoice:output audio to pin 0||`` — the edge pin that drives
+  the Robot PU amplifier. It is on automatically from the first
+  utterance and silences itself when speech ends, so you only need
+  this block to *disable* it on purpose — never to re-enable it
   Robot PU's amplifier
 
 When speech finishes, the audio hardware powers down automatically — no

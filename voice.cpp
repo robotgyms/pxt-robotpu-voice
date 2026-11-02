@@ -215,6 +215,12 @@ void PuVoice::ensureStarted() {
     uBit.audio.setSleep(false);
     uBit.audio.requestActivation();
     if (!started) {
+        // Enable pin 0 once, at module start. Idle noise on the pin is
+        // handled by powerDown() (setSleep stops the PWM), so user code
+        // never needs to guard speech with outputToPin0(true/false) pairs.
+        // A later explicit outputToPin0(false) is still honored.
+        uBit.audio.setPinEnabled(true);
+        sampleSource = new MemorySource();
         sampleSource = new MemorySource();
         sampleSource->setFormat(DATASTREAM_FORMAT_8BIT_UNSIGNED);
         sampleSource->setBufferSize(PUVOICE_WINDOW_SIZE);
