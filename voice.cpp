@@ -214,9 +214,11 @@ void PuVoice::ensureStarted() {
     // reconnects the speaker / edge connector pin if the pipeline was asleep.
     uBit.audio.setSleep(false);
     // Always re-assert pin 0 before every utterance: other packages
-    // (music, core pins) can disable it, which would mute the amp for
-    // the rest of the session. Idle noise is handled by powerDown()
-    // (setSleep stops the PWM), so the pin needs no off/on guarding.
+    // (music, core pins) can disable it or move the audio pin elsewhere,
+    // either of which would mute the amp for the rest of the session.
+    // Idle noise is handled by powerDown() (setSleep stops the PWM),
+    // so the pin needs no off/on guarding.
+    uBit.audio.setPin(uBit.io.P0);
     uBit.audio.setPinEnabled(true);
     uBit.audio.requestActivation();
     if (!started) {
