@@ -119,6 +119,14 @@ void setVolumeShim(int volume) {
  *
  */
 //%
+void setGainShim(int percent) {
+    voice.setGain(percent);
+}
+
+/**
+ *
+ */
+//%
 void setSpeakerEnabledShim(bool on) {
     uBit.audio.setSpeakerEnabled(on);
 }

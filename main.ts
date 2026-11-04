@@ -599,6 +599,21 @@ namespace robotpuVoice {
     }
 
     /**
+     * Amplify SAM's output before it reaches the mixer. SAM's waveform has
+     * much lower average energy than music tones, so speech sounds quiet at
+     * the same mixer volume - raise the gain to balance them. 100 is
+     * normal, 200 doubles loudness, values over ~250 may clip on peaks.
+     * @param gain percent amplification, eg: 200
+     */
+    //% blockId=robotpuvoice_set_gain block="set speech gain %gain \\%"
+    //% gain.min=10 gain.max=400 gain.defl=100
+    //% group="Output"
+    //% weight=69 blockGap=8
+    export function setGain(gain: number): void {
+        setGainShim(gain)
+    }
+
+    /**
      * Route audio to the micro:bit's on-board speaker.
      * @param on true to enable the on-board speaker, eg: true
      */
@@ -701,6 +716,10 @@ namespace robotpuVoice {
     //% shim=puvoice::isBusyShim
     function isBusyShim(): boolean {
         return false
+    }
+
+    //% shim=puvoice::setGainShim
+    function setGainShim(percent: number): void {
     }
 
     //% shim=puvoice::setVolumeShim

@@ -205,6 +205,7 @@ PuVoice::PuVoice() {
     mouth = 128;
     throat = 128;
     singTempo = 0;
+    gainPercent = 100;
     windowFill = 0;
     windowBase = 0;
 }
@@ -272,6 +273,13 @@ void PuVoice::outputByte(unsigned int pos, unsigned char value) {
     if (offset < 0)
         return; // belongs to a window that was already played
     if (offset < PUVOICE_WINDOW_SIZE) {
+        if (gainPercent != 100) {
+            // SAM's sparse-pulse waveform runs far below full scale, so
+            // speech sounds quiet next to continuous music tones. Scale
+            // the sample around the mid-rail center to lift its loudness.
+            int v = 128 + (((int)value - 128) * gainPercent) / 100;
+            value = v < 0 ? 0 : (v > 255 ? 255 : v);
+        }
         window[offset] = value;
         if (offset + 1 > windowFill)
             windowFill = offset + 1;
