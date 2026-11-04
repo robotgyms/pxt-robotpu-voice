@@ -64,6 +64,12 @@ declare namespace puvoice {
     /**
      *
      */
+    //% shim=puvoice::setGainShim
+    function setGainShim(percent: int32): void;
+
+    /**
+     *
+     */
     //% shim=puvoice::setSpeakerEnabledShim
     function setSpeakerEnabledShim(on: boolean): void;
 
