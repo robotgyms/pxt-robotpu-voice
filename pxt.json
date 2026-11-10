@@ -8,6 +8,7 @@
     },
     "files": [
         "README.md",
+        "ARCHITECTURE.md",
         "main.ts",
         "shim.cpp",
         "voice.h",

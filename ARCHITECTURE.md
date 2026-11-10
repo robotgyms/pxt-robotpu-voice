@@ -66,12 +66,16 @@ The wedge is defended at three layers:
    first runs `setSleep(false)` + `requestActivation()`, so a pipeline
    slept by anything else (e.g. another extension) is revived before the
    worker waits on it.
-3. **Bounded producer wait** — if the queue is still full after
-   `PUVOICE_STALL_MS` (5 s) with no `flushCount` progress, the worker is
-   declared wedged: `enqueueUtterance` drops the item and latches
-   `queueWedged`, so later producers drop immediately instead of each
-   parking for 5 s. `clearQueue()` ("stop speaking") clears the latch —
-   it is the manual recovery path.
+3. **Bounded producer wait** — a full queue with no `flushCount`
+   progress for `PUVOICE_STALL_MS` (5 s) first earns the worker one
+   wake-up nudge from the producer side (`setSleep(false)` +
+   `requestActivation()`, same fix as layer 2) plus another 5 s of
+   grace. Still nothing: the worker is declared wedged —
+   `enqueueUtterance` drops the item and latches `queueWedged`, so
+   later producers drop immediately instead of each parking for 10 s.
+   The latch self-clears the moment flushes resume (a late-recovering
+   worker reopens the queue on its own), and `clearQueue()`
+   ("stop speaking") clears it too.
 
 `wait until speech finished` gets the same treatment at block level: a
 120 s deadline so a wedge degrades to a timeout rather than a dead fiber.

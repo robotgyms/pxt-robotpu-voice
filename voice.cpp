@@ -51,8 +51,10 @@ static volatile bool workerStarted = false;
 static volatile unsigned queueGeneration = 0;
 // Set when a full-queue wait sees no render progress — subsequent producers
 // drop immediately instead of each parking for PUVOICE_STALL_MS. Cleared by
-// clearQueue() so "stop speaking" is the manual recovery path.
+// clearQueue(), and self-cleared when flushes resume so a late-recovering
+// worker reopens the queue without a manual reset.
 static volatile bool queueWedged = false;
+static volatile unsigned wedgedAtFlush = 0;
 
 // The reciter globals live in file scope, so TextToPhonemes must be
 // serialized across fibers (worker vs toPhonemesShim callers).
@@ -75,8 +77,13 @@ bool enqueueUtterance(int mode, const char *text) {
     // *calling* fiber — on robotPuCap's event-dispatch fiber that silently
     // killed every later robot action. Dropping the utterance degrades to
     // silence instead of losing the fiber.
-    if (queueWedged)
-        return false;
+    if (queueWedged) {
+        // The worker may still recover (e.g. the mixer woke late) — reopen
+        // the queue as soon as flushes resume instead of staying muted.
+        if (voice.getFlushCount() == wedgedAtFlush)
+            return false;
+        queueWedged = false;
+    }
     // If the queue is full, wait for the worker to drain a slot rather than
     // dropping the utterance - silent loss made long programs (e.g. a song
     // of 25 queued notes) stop playing after the first few items. The wait
@@ -88,6 +95,7 @@ bool enqueueUtterance(int mode, const char *text) {
     unsigned gen = queueGeneration;
     unsigned lastFlush = voice.getFlushCount();
     uint32_t lastProgressMs = system_timer_current_time();
+    bool kickTried = false;
     while (true) {
         target_disable_irq();
         bool stale = (queueGeneration != gen);
@@ -112,10 +120,22 @@ bool enqueueUtterance(int mode, const char *text) {
         if (voice.getFlushCount() != lastFlush) {
             lastFlush = voice.getFlushCount();
             lastProgressMs = system_timer_current_time();
+            kickTried = false;
         } else if ((int32_t)(system_timer_current_time() - lastProgressMs) >
                    (int32_t)PUVOICE_STALL_MS) {
-            queueWedged = true;
-            return false;
+            if (!kickTried) {
+                // One wake-up nudge before giving up: if the mixer was only
+                // slept/deactivated, re-activating it lets play() drain and
+                // the worker unstick itself rather than being declared dead.
+                kickTried = true;
+                uBit.audio.setSleep(false);
+                uBit.audio.requestActivation();
+                lastProgressMs = system_timer_current_time();
+            } else {
+                queueWedged = true;
+                wedgedAtFlush = lastFlush;
+                return false;
+            }
         }
         fiber_sleep(10);
     }
