@@ -57,6 +57,11 @@ namespace puvoice {
 #define PUVOICE_SAMPLE_RATE     22050
 #define PUVOICE_WINDOW_SIZE     4096
 #define PUVOICE_QUEUE_DEPTH     4   // 3 usable slots; a full queue blocks the producer
+// A producer may wait out a full queue, but never forever: no render
+// progress for this long means the worker is wedged (e.g.
+// MemorySource::play() on a slept mixer) and the caller's fiber must be
+// released by dropping the utterance instead of deadlocking it.
+#define PUVOICE_STALL_MS        5000
 #define PUVOICE_MAX_TEXT        90  // reciter output saturates around 120 phonemes
 
 #define PUVOICE_SILENCE         128 // mid-rail value for 8-bit unsigned samples
@@ -86,6 +91,7 @@ class PuVoice {
     bool started;                   // mixer channel created
     volatile bool speaking;         // an utterance is being rendered/played
     volatile bool cancelled;        // stop() requested
+    volatile unsigned flushCount;   // completed play() windows — worker liveness
 
     void streamReset();
     void streamFlush(int length);
@@ -104,6 +110,8 @@ public:
     void setPinEnabled(bool on) { uBit.audio.setPinEnabled(on); }
 
     bool isSpeaking() { return speaking; }
+    // Completed play() windows — read by enqueueUtterance's stall detection.
+    unsigned getFlushCount() { return flushCount; }
     void requestCancel() { cancelled = true; renderAborted = true; }
 };
 

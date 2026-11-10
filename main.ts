@@ -494,7 +494,10 @@ namespace robotpuVoice {
     //% group="Speech"
     //% weight=89
     export function waitUntilDone(): void {
-        while (isBusyShim()) {
+        // A wedged voice worker leaves isBusy true forever — bound the wait
+        // so a caller's fiber degrades to a timeout instead of deadlocking.
+        const deadline = input.runningTime() + 120000
+        while (isBusyShim() && input.runningTime() < deadline) {
             basic.pause(10)
         }
     }

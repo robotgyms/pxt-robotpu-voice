@@ -49,6 +49,10 @@ static volatile bool workerStarted = false;
 // Bumped by clearQueue() so a producer blocked on a full queue notices that
 // its pending utterance belongs to a cancelled batch and drops it.
 static volatile unsigned queueGeneration = 0;
+// Set when a full-queue wait sees no render progress — subsequent producers
+// drop immediately instead of each parking for PUVOICE_STALL_MS. Cleared by
+// clearQueue() so "stop speaking" is the manual recovery path.
+static volatile bool queueWedged = false;
 
 // The reciter globals live in file scope, so TextToPhonemes must be
 // serialized across fibers (worker vs toPhonemesShim callers).
@@ -66,6 +70,13 @@ volatile bool renderAborted = false;
 
 bool enqueueUtterance(int mode, const char *text) {
     ensureWorker();
+    // If the worker wedges (e.g. MemorySource::play() waiting on a slept
+    // mixer), the queue stays full and an unbounded wait would park the
+    // *calling* fiber — on robotPuCap's event-dispatch fiber that silently
+    // killed every later robot action. Dropping the utterance degrades to
+    // silence instead of losing the fiber.
+    if (queueWedged)
+        return false;
     // If the queue is full, wait for the worker to drain a slot rather than
     // dropping the utterance - silent loss made long programs (e.g. a song
     // of 25 queued notes) stop playing after the first few items. The wait
@@ -75,6 +86,8 @@ bool enqueueUtterance(int mode, const char *text) {
     // can enqueue at once, and a producer must never be preempted between
     // filling a slot and publishing it.
     unsigned gen = queueGeneration;
+    unsigned lastFlush = voice.getFlushCount();
+    uint32_t lastProgressMs = system_timer_current_time();
     while (true) {
         target_disable_irq();
         bool stale = (queueGeneration != gen);
@@ -92,6 +105,18 @@ bool enqueueUtterance(int mode, const char *text) {
             return false;
         if (!full)
             return true;
+        // Full queue: wait, but watch render progress, not the queue. A live
+        // worker completes a ~186 ms window steadily even inside the longest
+        // utterance; no progress for PUVOICE_STALL_MS means it is wedged —
+        // drop, don't deadlock.
+        if (voice.getFlushCount() != lastFlush) {
+            lastFlush = voice.getFlushCount();
+            lastProgressMs = system_timer_current_time();
+        } else if ((int32_t)(system_timer_current_time() - lastProgressMs) >
+                   (int32_t)PUVOICE_STALL_MS) {
+            queueWedged = true;
+            return false;
+        }
         fiber_sleep(10);
     }
 }
@@ -107,6 +132,7 @@ void clearQueue() {
     target_disable_irq();
     qHead = qTail = 0;
     queueGeneration++;
+    queueWedged = false;
     target_enable_irq();
 }
 
@@ -200,6 +226,7 @@ PuVoice::PuVoice() {
     started = false;
     speaking = false;
     cancelled = false;
+    flushCount = 0;
     speed = 72;
     pitch = 64;
     mouth = 128;
@@ -223,7 +250,6 @@ void PuVoice::ensureStarted() {
     uBit.audio.setPinEnabled(true);
     uBit.audio.requestActivation();
     if (!started) {
-        sampleSource = new MemorySource();
         sampleSource = new MemorySource();
         sampleSource->setFormat(DATASTREAM_FORMAT_8BIT_UNSIGNED);
         sampleSource->setBufferSize(PUVOICE_WINDOW_SIZE);
@@ -255,6 +281,7 @@ void PuVoice::streamFlush(int length) {
     uBit.audio.setSleep(false);
     uBit.audio.requestActivation();
     sampleSource->play(window, length);
+    ++flushCount;
     windowBase += PUVOICE_WINDOW_SIZE;
     windowFill = 0;
     memset(window, PUVOICE_SILENCE, PUVOICE_WINDOW_SIZE);
@@ -304,6 +331,7 @@ bool PuVoice::speakNow(const char *text, int mode) {
             uBit.audio.setSleep(false);
             uBit.audio.requestActivation();
             sampleSource->play(window, chunk);
+            ++flushCount;
             remaining -= chunk;
         }
         return true;
@@ -363,6 +391,7 @@ bool PuVoice::speakNow(const char *text, int mode) {
         uBit.audio.setSleep(false);
         uBit.audio.requestActivation();
         sampleSource->play(window, windowFill);
+        ++flushCount;
     }
     windowFill = 0;
     return true;
