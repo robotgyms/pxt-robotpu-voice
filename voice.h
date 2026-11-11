@@ -141,6 +141,17 @@ void clearQueue();
 void ensureWorker();
 bool voiceBusy();
 
+// Hardware watchdog (watchdog.cpp). Arms the nRF52 WDT and a feeder fiber;
+// resets the chip when the whole scheduler wedges (e.g. a native call that
+// never yields). The nRF52 locks CRV once the WDT runs, so the first arm
+// since power-on fixes the timeout — a WDT still running from a previous
+// soft reset keeps whatever it had.
+void watchdogStartShim(int seconds);
+void watchdogAutoArm(int seconds);
+#define PUVOICE_WDT_SECONDS 5   // auto-arm timeout (main.ts top level)
+#define PUVOICE_WDT_MUTE_MS 2000 // utterance-drop window after a WDT reset
+bool watchdogRecoveryMute();
+
 // Called by the legacy SAM renderer for every output sample.
 void SamOutputByte(unsigned int pos, unsigned char value);
 

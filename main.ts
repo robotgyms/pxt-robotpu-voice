@@ -676,6 +676,38 @@ namespace robotpuVoice {
         return toPhonemesShim(text)
     }
 
+    /**
+     * Arm the hardware watchdog and start a background feeder. If the
+     * program freezes completely — including inside native code that
+     * starves every fiber — the chip resets itself after %seconds seconds
+     * and the robot recovers on its own.
+     *
+     * The watchdog already starts automatically at 5 s when the program
+     * boots; the chip locks the timeout once the watchdog is running, so
+     * the automatic 5 s stands for the session — this block cannot
+     * retime it.
+     * @param seconds freeze time before the watchdog resets, eg: 10
+     */
+    //% blockId=robotpuvoice_watchdog_start block="start watchdog %seconds seconds"
+    //% group="Advanced"
+    //% seconds.defl=10
+    //% weight=49
+    export function startWatchdog(seconds: number): void {
+        watchdogStartShim(seconds)
+    }
+
+    /**
+     * True if the watchdog caused the last reset — the program froze and
+     * the chip restarted itself. Use it to detect a watchdog recovery,
+     * e.g. to skip replaying a command that caused the freeze.
+     */
+    //% blockId=robotpuvoice_watchdog_reset block="restarted by watchdog"
+    //% group="Advanced"
+    //% weight=48
+    export function wasWatchdogReset(): boolean {
+        return watchdogResetShim()
+    }
+
     //% shim=puvoice::sayShim
     function sayShim(text: string): void {
         console.log("say: " + text)
@@ -749,4 +781,19 @@ namespace robotpuVoice {
     function toPhonemesShim(text: string): string {
         return text
     }
+
+    //% shim=puvoice::watchdogStartShim
+    function watchdogStartShim(seconds: number): void {
+        console.log("watchdog start: " + seconds + "s")
+    }
+
+    //% shim=puvoice::watchdogResetShim
+    function watchdogResetShim(): boolean {
+        return false
+    }
+
+    // Auto-arm the hardware watchdog whenever this extension is part of a
+    // program: top-level statements run at program start, before onStart
+    // handlers. The "start watchdog" block can override the timeout later.
+    startWatchdog(5)
 }

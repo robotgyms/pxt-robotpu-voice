@@ -93,5 +93,20 @@ declare namespace puvoice {
     //% shim=puvoice::toPhonemesShim
     function toPhonemesShim(text: string): string;
 }
+declare namespace puvoice {
+
+    /**
+     * Arm the hardware watchdog and start the background feeder.
+     */
+    //% shim=puvoice::watchdogStartShim
+    function watchdogStartShim(seconds: int32): void;
+
+    /**
+     * True when the previous reset was caused by the watchdog biting — the
+     * program froze and the chip restarted itself.
+     */
+    //% shim=puvoice::watchdogResetShim
+    function watchdogResetShim(): boolean;
+}
 
 // Auto-generated. Do not edit. Really.

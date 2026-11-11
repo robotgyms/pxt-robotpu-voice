@@ -72,6 +72,10 @@ volatile bool renderAborted = false;
 
 bool enqueueUtterance(int mode, const char *text) {
     ensureWorker();
+    // Watchdog recovery: drop the stale replayed utterance so the audio
+    // pipeline that contributed to the freeze is not restarted.
+    if (watchdogRecoveryMute())
+        return false;
     // If the worker wedges (e.g. MemorySource::play() waiting on a slept
     // mixer), the queue stays full and an unbounded wait would park the
     // *calling* fiber — on robotPuCap's event-dispatch fiber that silently
@@ -491,6 +495,10 @@ static void voiceWorker(void *) {
 }
 
 void ensureWorker() {
+    // Arm the watchdog lazily as well: every speech path lands here, so a
+    // program is protected from the first utterance even if the auto-start
+    // in main.ts never ran. AutoArm leaves an explicit timeout untouched.
+    watchdogAutoArm(PUVOICE_WDT_SECONDS);
     target_disable_irq();
     bool start = !workerStarted;
     workerStarted = true;
